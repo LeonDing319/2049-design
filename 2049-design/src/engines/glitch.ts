@@ -1,0 +1,125 @@
+import { GlitchParams } from '@/types'
+
+// 确定性伪随机数生成器 (mulberry32)
+function seededRandom(seed: number): () => number {
+  return function () {
+    seed |= 0
+    seed = (seed + 0x6d2b79f5) | 0
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
+
+export function renderGlitch(
+  ctx: CanvasRenderingContext2D,
+  sourceImage: HTMLImageElement,
+  params: GlitchParams,
+  canvasWidth: number,
+  canvasHeight: number,
+  animationFrame?: number
+) {
+  const { stripeDensity, displacement, rgbSplit, clipShape, randomSeed, animation, animationSpeed } = params
+
+  // 计算实际 seed（动画模式下混入帧号）
+  const effectiveSeed = animation && animationFrame !== undefined
+    ? randomSeed + Math.floor(animationFrame * animationSpeed * 0.1)
+    : randomSeed
+
+  const random = seededRandom(effectiveSeed)
+
+  // 清除画布
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+
+  // 计算图片在画布中的居中位置和缩放
+  const scale = Math.min(canvasWidth / sourceImage.width, canvasHeight / sourceImage.height)
+  const imgW = sourceImage.width * scale
+  const imgH = sourceImage.height * scale
+  const imgX = (canvasWidth - imgW) / 2
+  const imgY = (canvasHeight - imgH) / 2
+
+  // 应用裁切形状
+  if (clipShape !== 'none') {
+    ctx.save()
+    ctx.beginPath()
+    if (clipShape === 'circle') {
+      const cx = canvasWidth / 2
+      const cy = canvasHeight / 2
+      const radius = Math.min(imgW, imgH) / 2
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+    } else {
+      ctx.rect(imgX, imgY, imgW, imgH)
+    }
+    ctx.clip()
+  }
+
+  // 计算条纹数量
+  const stripeCount = Math.max(1, Math.floor(stripeDensity * 0.5))
+  // displacement 为 0 时留 1px 间隙，让条纹可见
+  const stripeGap = displacement === 0 && stripeCount > 1 ? 1 : 0
+  const stripeHeight = (imgH - stripeGap * (stripeCount - 1)) / stripeCount
+
+  // RGB 通道分离渲染
+  if (rgbSplit > 0) {
+    const offsets = [
+      { color: 'red', dx: rgbSplit * scale },
+      { color: 'green', dx: 0 },
+      { color: 'blue', dx: -rgbSplit * scale },
+    ]
+
+    ctx.globalCompositeOperation = 'screen'
+
+    for (const { color, dx } of offsets) {
+      // 创建临时 canvas 做通道分离
+      const tempCanvas = document.createElement('canvas')
+      tempCanvas.width = canvasWidth
+      tempCanvas.height = canvasHeight
+      const tempCtx = tempCanvas.getContext('2d')!
+
+      // 绘制条纹 + 位移
+      const stripeRandom = seededRandom(effectiveSeed)
+      for (let i = 0; i < stripeCount; i++) {
+        const sy = imgY + i * (stripeHeight + stripeGap)
+        const offsetX = (stripeRandom() - 0.5) * displacement * scale * 2
+        tempCtx.drawImage(
+          sourceImage,
+          0, (i * sourceImage.height) / stripeCount,
+          sourceImage.width, sourceImage.height / stripeCount,
+          imgX + offsetX + dx, sy,
+          imgW, stripeHeight
+        )
+      }
+
+      // 提取单色通道
+      const imageData = tempCtx.getImageData(0, 0, canvasWidth, canvasHeight)
+      const data = imageData.data
+      for (let j = 0; j < data.length; j += 4) {
+        if (color === 'red') { data[j + 1] = 0; data[j + 2] = 0 }
+        else if (color === 'green') { data[j] = 0; data[j + 2] = 0 }
+        else { data[j] = 0; data[j + 1] = 0 }
+      }
+      tempCtx.putImageData(imageData, 0, 0)
+      ctx.drawImage(tempCanvas, 0, 0)
+    }
+
+    ctx.globalCompositeOperation = 'source-over'
+  } else {
+    // 无 RGB 分离，直接条纹位移
+    const stripeRandom = seededRandom(effectiveSeed)
+    for (let i = 0; i < stripeCount; i++) {
+      const sy = imgY + i * (stripeHeight + stripeGap)
+      const offsetX = (stripeRandom() - 0.5) * displacement * scale * 2
+      ctx.drawImage(
+        sourceImage,
+        0, (i * sourceImage.height) / stripeCount,
+        sourceImage.width, sourceImage.height / stripeCount,
+        imgX + offsetX, sy,
+        imgW, stripeHeight
+      )
+    }
+  }
+
+  if (clipShape !== 'none') {
+    ctx.restore()
+  }
+}

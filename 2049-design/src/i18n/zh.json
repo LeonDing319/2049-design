@@ -1,0 +1,73 @@
+{
+  "app": {
+    "title": "2049 Design",
+    "description": "图像艺术效果生成工具"
+  },
+  "effects": {
+    "glitch": "故障艺术",
+    "ascii": "代码艺术"
+  },
+  "upload": {
+    "title": "上传图片",
+    "dragHint": "拖拽图片到此处或点击上传",
+    "formats": "支持 JPG、PNG、WebP，最大 10MB",
+    "dropOverlay": "将图片拖放到此处",
+    "error": {
+      "type": "不支持的文件类型，请使用 JPG、PNG 或 WebP",
+      "size": "文件过大，最大支持 10MB",
+      "load": "图片加载失败"
+    }
+  },
+  "params": {
+    "presets": "预设模板",
+    "stripeDensity": "条纹密度",
+    "displacement": "条纹偏移",
+    "rgbSplit": "RGB 颜色",
+    "clipShape": "画符形状",
+    "randomSeed": "随机",
+    "randomize": "随机",
+    "animation": "动态",
+    "animationSpeed": "动态速度",
+    "charDensity": "字符密度",
+    "charSet": "字符集",
+    "fontSize": "字体大小",
+    "colorMode": "颜色模式",
+    "bgColor": "背景色",
+    "invert": "反转",
+    "clipShapeOptions": {
+      "none": "无裁切",
+      "circle": "圆形",
+      "rectangle": "矩形"
+    },
+    "charSetOptions": {
+      "standard": "标准",
+      "minimal": "简约",
+      "blocks": "方块",
+      "custom": "自定义"
+    },
+    "colorModeOptions": {
+      "bw": "黑白",
+      "color": "彩色",
+      "mono": "单色"
+    }
+  },
+  "export": {
+    "title": "导出",
+    "button": "导出",
+    "png": "PNG 图片",
+    "gif": "GIF 动画",
+    "html": "HTML 代码",
+    "canvasCode": "Canvas 代码",
+    "pngDesc": "导出静态图片",
+    "gifDesc": "导出动画效果（仅动画模式）",
+    "htmlDesc": "完整 HTML + CSS + JS 代码",
+    "canvasCodeDesc": "Canvas API 代码片段",
+    "copy": "复制代码",
+    "copied": "已复制！",
+    "processing": "处理中...",
+    "close": "关闭"
+  },
+  "settings": {
+    "language": "语言"
+  }
+}

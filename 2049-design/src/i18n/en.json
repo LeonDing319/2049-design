@@ -1,0 +1,73 @@
+{
+  "app": {
+    "title": "2049 Design",
+    "description": "Image Art Effect Generator"
+  },
+  "effects": {
+    "glitch": "Glitch",
+    "ascii": "ASCII Art"
+  },
+  "upload": {
+    "title": "Upload Image",
+    "dragHint": "Drag & drop image here or click to upload",
+    "formats": "JPG, PNG, WebP supported, max 10MB",
+    "dropOverlay": "Drop image here",
+    "error": {
+      "type": "Unsupported file type. Use JPG, PNG, or WebP.",
+      "size": "File too large. Maximum size is 10MB.",
+      "load": "Failed to load image."
+    }
+  },
+  "params": {
+    "presets": "Presets",
+    "stripeDensity": "Stripe Density",
+    "displacement": "Displacement",
+    "rgbSplit": "RGB Split",
+    "clipShape": "Clip Shape",
+    "randomSeed": "Random Seed",
+    "randomize": "Randomize",
+    "animation": "Animation",
+    "animationSpeed": "Animation Speed",
+    "charDensity": "Character Density",
+    "charSet": "Character Set",
+    "fontSize": "Font Size",
+    "colorMode": "Color Mode",
+    "bgColor": "Background Color",
+    "invert": "Invert",
+    "clipShapeOptions": {
+      "none": "None",
+      "circle": "Circle",
+      "rectangle": "Rectangle"
+    },
+    "charSetOptions": {
+      "standard": "Standard",
+      "minimal": "Minimal",
+      "blocks": "Blocks",
+      "custom": "Custom"
+    },
+    "colorModeOptions": {
+      "bw": "B&W",
+      "color": "Color",
+      "mono": "Mono"
+    }
+  },
+  "export": {
+    "title": "Export",
+    "button": "Export",
+    "png": "PNG Image",
+    "gif": "GIF Animation",
+    "html": "HTML Code",
+    "canvasCode": "Canvas Code",
+    "pngDesc": "Export static image",
+    "gifDesc": "Export animation (animation mode only)",
+    "htmlDesc": "Complete HTML + CSS + JS code",
+    "canvasCodeDesc": "Canvas API code snippet",
+    "copy": "Copy Code",
+    "copied": "Copied!",
+    "processing": "Processing...",
+    "close": "Close"
+  },
+  "settings": {
+    "language": "Language"
+  }
+}
