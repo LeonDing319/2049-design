@@ -75,7 +75,7 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
     <div className="space-y-2">
       {/* Preview banner */}
       <img
-        src="/preview-banner.png"
+        src={state.activeEffect === 'ascii' ? '/preview-banner-ascii.png' : '/preview-banner.png'}
         alt="Preview"
         style={{
           width: '100%',
@@ -83,6 +83,7 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
           borderRadius: '8px',
           objectFit: 'cover',
           border: '1.5px solid rgba(92, 92, 92, 1)',
+          transition: 'opacity 0.3s ease',
         }}
       />
 

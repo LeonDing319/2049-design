@@ -50,10 +50,11 @@ export const ASCII_PRESETS: Preset<AsciiParams>[] = [
 ]
 
 export const DEFAULT_ASCII_PARAMS: AsciiParams = {
-  charDensity: 1,
-  charSet: 'standard',
+  charDensity: 50,
+  charSet: 'blocks',
   fontSize: 10,
-  colorMode: 'bw',
-  bgColor: '#000000',
+  colorMode: 'mono',
+  monoColor: '#ffffff',
+  bgColor: '#1a2fd4',
   invert: false,
 }

@@ -4,7 +4,7 @@
     "description": "Image Art Effect Generator"
   },
   "effects": {
-    "glitch": "Glitch",
+    "glitch": "Glitch Art",
     "ascii": "ASCII Art"
   },
   "upload": {
