@@ -4,15 +4,16 @@ import { useState } from 'react'
 import { useAppState } from '@/hooks/useEffectParams'
 import { ImageUploader } from '@/components/upload/ImageUploader'
 import { Slider } from '@/components/controls/Slider'
+import { DirectionPicker } from '@/components/controls/DirectionPicker'
 import { Select } from '@/components/controls/Select'
 import { Toggle } from '@/components/controls/Toggle'
 import { ColorPicker } from '@/components/controls/ColorPicker'
 import { PresetPicker } from '@/components/controls/PresetPicker'
 import { GLITCH_PRESETS, DEFAULT_GLITCH_PARAMS } from '@/presets/glitch-presets'
 import { ASCII_PRESETS, DEFAULT_ASCII_PARAMS } from '@/presets/ascii-presets'
-import { GlitchParams, AsciiParams } from '@/types'
+import { GlitchParams, AsciiParams, SplitDirection } from '@/types'
 import { useTranslations } from 'next-intl'
-import { AlignJustify, Shuffle, Layers, Dice5, Play, Gauge, LayoutGrid } from 'lucide-react'
+import { AlignJustify, Shuffle, Layers, Dice5, Play, Gauge, LayoutGrid, Move } from 'lucide-react'
 
 interface SidebarProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>
@@ -74,6 +75,12 @@ export function Sidebar({ canvasRef }: SidebarProps) {
                 label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Layers style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('rgbSplit')}</span>}
                 value={state.glitchParams.rgbSplit} min={0} max={50} onChange={(v) => setGlitch('rgbSplit', v)} disabled={disabled}
                 sound="mech5"
+              />
+              <DirectionPicker
+                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Move style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('rgbSplitDirection')}</span>}
+                value={state.glitchParams.rgbSplitDirection}
+                onChange={(v) => setGlitch('rgbSplitDirection', v as SplitDirection)}
+                disabled={disabled || state.glitchParams.rgbSplit === 0}
               />
               <Slider
                 label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Dice5 style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('randomSeed')}</span>}

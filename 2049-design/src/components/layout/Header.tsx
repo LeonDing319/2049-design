@@ -57,7 +57,8 @@ export function Header() {
           width: indicator.width,
           height: 'calc(100% - 4px)',
           borderRadius: 4,
-          backgroundColor: 'var(--color-bg-hover)',
+          backgroundColor: 'var(--color-tab-indicator)',
+          boxShadow: 'var(--color-tab-indicator-shadow)',
           transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1), width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
           pointerEvents: 'none',
         }} />

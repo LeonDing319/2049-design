@@ -19,7 +19,7 @@ export function renderGlitch(
   canvasHeight: number,
   animationFrame?: number
 ) {
-  const { stripeDensity, displacement, rgbSplit, clipShape, randomSeed, animation, animationSpeed } = params
+  const { stripeDensity, displacement, rgbSplit, rgbSplitDirection, clipShape, randomSeed, animation, animationSpeed } = params
 
   // 计算实际 seed（动画模式下混入帧号）
   const effectiveSeed = animation && animationFrame !== undefined
@@ -61,15 +61,29 @@ export function renderGlitch(
 
   // RGB 通道分离渲染（用 multiply 混合 + 纯色遮罩替代像素级通道提取）
   if (rgbSplit > 0) {
+    // 根据方向计算 dx/dy 分量
+    const dirMap: Record<string, [number, number]> = {
+      'right':      [ 1,  0],
+      'left':       [-1,  0],
+      'down':       [ 0,  1],
+      'up':         [ 0, -1],
+      'down-right': [ 0.707,  0.707],
+      'down-left':  [-0.707,  0.707],
+      'up-right':   [ 0.707, -0.707],
+      'up-left':    [-0.707, -0.707],
+    }
+    const [dirX, dirY] = dirMap[rgbSplitDirection] || [1, 0]
+    const splitAmount = rgbSplit * scale
+
     const channelColors = [
-      { hex: '#ff0000', dx: rgbSplit * scale },
-      { hex: '#00ff00', dx: 0 },
-      { hex: '#0000ff', dx: -rgbSplit * scale },
+      { hex: '#ff0000', dx: dirX * splitAmount, dy: dirY * splitAmount },
+      { hex: '#00ff00', dx: 0, dy: 0 },
+      { hex: '#0000ff', dx: -dirX * splitAmount, dy: -dirY * splitAmount },
     ]
 
     ctx.globalCompositeOperation = 'screen'
 
-    for (const { hex, dx } of channelColors) {
+    for (const { hex, dx, dy } of channelColors) {
       const tempCanvas = document.createElement('canvas')
       tempCanvas.width = canvasWidth
       tempCanvas.height = canvasHeight
@@ -84,7 +98,7 @@ export function renderGlitch(
           sourceImage,
           0, (i * sourceImage.height) / stripeCount,
           sourceImage.width, sourceImage.height / stripeCount,
-          imgX + offsetX + dx, sy,
+          imgX + offsetX + dx, sy + dy,
           imgW, stripeHeight
         )
       }

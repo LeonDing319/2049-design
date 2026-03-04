@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useRef, useState, useEffect, useCallback } from 'react'
+import { ReactNode, useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
 
 const THUMB = 16
 
@@ -132,15 +132,19 @@ export function Slider({ label, value, min, max, step = 1, onChange, disabled, s
     onChange(v)
   }, [onChange, sound])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!trackRef.current) return
+    setTrackWidth(trackRef.current.getBoundingClientRect().width)
     const ro = new ResizeObserver(([e]) => setTrackWidth(e.contentRect.width))
     ro.observe(trackRef.current)
     return () => ro.disconnect()
   }, [])
 
-  const thumbLeft = trackWidth > 0 ? percent * (trackWidth - THUMB) : 0
-  const fillWidth = trackWidth > 0 ? thumbLeft + THUMB : 0
+  // Thumb center travels from THUMB/2 to trackWidth-THUMB/2
+  // so the circle is always fully within the track bounds
+  const thumbCenter = trackWidth > 0 ? THUMB / 2 + percent * (trackWidth - THUMB) : THUMB / 2
+  const thumbLeft = thumbCenter - THUMB / 2
+  const fillWidth = thumbCenter
 
   return (
     <div className="flex flex-col gap-1.5" style={{ opacity: disabled ? 0.4 : 1 }}>
@@ -152,17 +156,27 @@ export function Slider({ label, value, min, max, step = 1, onChange, disabled, s
         <span className="text-neutral-500 tabular-nums">{value}</span>
       </div>
 
+      {/* Outer container — full width, used for input hit area */}
       <div ref={trackRef} style={{ position: 'relative', height: THUMB }}>
+        {/* Track — full width background */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 9999,
-          backgroundColor: 'var(--color-slider-track)', overflow: 'hidden',
-        }}>
-          <div style={{
-            height: '100%', width: fillWidth, backgroundColor: 'var(--color-slider-fill)',
-            transition: dragging ? 'none' : 'width 0.05s',
-          }} />
-        </div>
+          backgroundColor: 'var(--color-slider-track)',
+          zIndex: 0,
+        }} />
 
+        {/* Fill — from left edge to thumb center */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0,
+          height: '100%',
+          width: trackWidth > 0 ? thumbLeft + THUMB / 2 : 0,
+          backgroundColor: 'var(--color-slider-fill)',
+          borderRadius: 9999,
+          transition: dragging ? 'none' : 'width 0.05s',
+          zIndex: 1,
+        }} />
+
+        {/* Native input — full width, invisible */}
         <input
           type="range" min={min} max={max} step={step} value={value}
           onChange={(e) => handleChange(Number(e.target.value))}
@@ -173,16 +187,20 @@ export function Slider({ label, value, min, max, step = 1, onChange, disabled, s
           disabled={disabled}
           style={{
             position: 'absolute', inset: 0, width: '100%', height: '100%',
-            margin: 0, opacity: 0, cursor: disabled ? 'not-allowed' : 'pointer', zIndex: 2,
+            margin: 0, opacity: 0, cursor: disabled ? 'not-allowed' : 'pointer', zIndex: 4,
           }}
         />
 
+        {/* Thumb — always fully visible, travels 0 to trackWidth-THUMB */}
         <div style={{
-          position: 'absolute', top: 0, left: thumbLeft,
+          position: 'absolute', top: 0,
+          left: thumbLeft,
           width: THUMB, height: THUMB, borderRadius: '50%',
-          backgroundColor: 'var(--color-slider-thumb)', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+          backgroundColor: 'var(--color-slider-thumb)',
+          boxShadow: 'var(--color-slider-thumb-shadow)',
           transition: dragging ? 'none' : 'left 0.05s',
-          pointerEvents: 'none', zIndex: 1,
+          pointerEvents: 'none',
+          zIndex: 3,
         }} />
       </div>
     </div>

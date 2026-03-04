@@ -23,6 +23,7 @@
     "stripeDensity": "Stripe Density",
     "displacement": "Displacement",
     "rgbSplit": "RGB Split",
+    "rgbSplitDirection": "Split Direction",
     "clipShape": "Clip Shape",
     "randomSeed": "Random Seed",
     "randomize": "Randomize",

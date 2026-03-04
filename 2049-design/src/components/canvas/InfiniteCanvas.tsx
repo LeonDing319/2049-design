@@ -39,8 +39,20 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
     if (state.image && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       const { width: dw, height: dh } = getDisplaySize(state.image)
-      setNodePos({ x: (rect.width - dw) / 2, y: (rect.height - dh) / 2 })
-      setViewport({ x: 0, y: 0, zoom: 1 })
+      const padding = 40
+      const fitZoom = Math.min(
+        (rect.width - padding * 2) / dw,
+        (rect.height - padding * 2) / dh,
+        1
+      )
+      const scaledW = dw * fitZoom
+      const scaledH = dh * fitZoom
+      setNodePos({ x: 0, y: 0 })
+      setViewport({
+        x: (rect.width - scaledW) / 2,
+        y: (rect.height - scaledH) / 2,
+        zoom: fitZoom,
+      })
     }
   }, [state.image])
 
