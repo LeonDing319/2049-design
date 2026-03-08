@@ -61,19 +61,11 @@ export function renderGlitch(
 
   // RGB 通道分离渲染（用 multiply 混合 + 纯色遮罩替代像素级通道提取）
   if (rgbSplit > 0) {
-    // 根据方向计算 dx/dy 分量
-    const dirMap: Record<string, [number, number]> = {
-      'right':      [ 1,  0],
-      'left':       [-1,  0],
-      'down':       [ 0,  1],
-      'up':         [ 0, -1],
-      'down-right': [ 0.707,  0.707],
-      'down-left':  [-0.707,  0.707],
-      'up-right':   [ 0.707, -0.707],
-      'up-left':    [-0.707, -0.707],
-    }
-    const [dirX, dirY] = dirMap[rgbSplitDirection] || [1, 0]
-    const splitAmount = rgbSplit * scale
+    // 角度转方向向量（0°=右，90°=下，顺时针）
+    const rad = rgbSplitDirection * Math.PI / 180
+    const dirX = Math.cos(rad)
+    const dirY = Math.sin(rad)
+    const splitAmount = rgbSplit * scale * 1.3
 
     const channelColors = [
       { hex: '#ff0000', dx: dirX * splitAmount, dy: dirY * splitAmount },
@@ -81,7 +73,30 @@ export function renderGlitch(
       { hex: '#0000ff', dx: -dirX * splitAmount, dy: -dirY * splitAmount },
     ]
 
-    ctx.globalCompositeOperation = 'screen'
+    // 预渲染条纹（不含通道偏移），供三通道复用
+    const stripeCanvas = document.createElement('canvas')
+    stripeCanvas.width = canvasWidth
+    stripeCanvas.height = canvasHeight
+    const stripeCtx = stripeCanvas.getContext('2d')!
+    const stripeRandom = seededRandom(effectiveSeed)
+    for (let i = 0; i < stripeCount; i++) {
+      const sy = imgY + i * (stripeHeight + stripeGap)
+      const offsetX = (stripeRandom() - 0.5) * displacement * scale * 2
+      stripeCtx.drawImage(
+        sourceImage,
+        0, (i * sourceImage.height) / stripeCount,
+        sourceImage.width, sourceImage.height / stripeCount,
+        imgX + offsetX, sy,
+        imgW, stripeHeight
+      )
+    }
+
+    // RGB split 效果合成到独立 canvas
+    const rgbCanvas = document.createElement('canvas')
+    rgbCanvas.width = canvasWidth
+    rgbCanvas.height = canvasHeight
+    const rgbCtx = rgbCanvas.getContext('2d')!
+    rgbCtx.globalCompositeOperation = 'screen'
 
     for (const { hex, dx, dy } of channelColors) {
       const tempCanvas = document.createElement('canvas')
@@ -89,29 +104,24 @@ export function renderGlitch(
       tempCanvas.height = canvasHeight
       const tempCtx = tempCanvas.getContext('2d')!
 
-      // 绘制条纹 + 位移
-      const stripeRandom = seededRandom(effectiveSeed)
-      for (let i = 0; i < stripeCount; i++) {
-        const sy = imgY + i * (stripeHeight + stripeGap)
-        const offsetX = (stripeRandom() - 0.5) * displacement * scale * 2
-        tempCtx.drawImage(
-          sourceImage,
-          0, (i * sourceImage.height) / stripeCount,
-          sourceImage.width, sourceImage.height / stripeCount,
-          imgX + offsetX + dx, sy + dy,
-          imgW, stripeHeight
-        )
-      }
+      tempCtx.drawImage(stripeCanvas, dx, dy)
 
-      // 用 multiply 混合纯色遮罩提取单通道，无需 getImageData 像素遍历
       tempCtx.globalCompositeOperation = 'multiply'
       tempCtx.fillStyle = hex
       tempCtx.fillRect(0, 0, canvasWidth, canvasHeight)
 
-      ctx.drawImage(tempCanvas, 0, 0)
+      tempCtx.globalCompositeOperation = 'destination-in'
+      tempCtx.drawImage(stripeCanvas, 0, 0)
+
+      rgbCtx.drawImage(tempCanvas, 0, 0)
     }
 
-    ctx.globalCompositeOperation = 'source-over'
+    // 裁剪 RGB 效果到原图矩形边界
+    rgbCtx.globalCompositeOperation = 'destination-in'
+    rgbCtx.fillStyle = 'white'
+    rgbCtx.fillRect(imgX, imgY, imgW, imgH)
+
+    ctx.drawImage(rgbCanvas, 0, 0)
   } else {
     // 无 RGB 分离，直接条纹位移
     const stripeRandom = seededRandom(effectiveSeed)
