@@ -18,7 +18,8 @@
       "WebFetch(domain:localhost)",
       "Read(//Users/admin/Leon/VibeCoding/2049 Design/**)",
       "Bash(python /tmp/screenshot.py)",
-      "Bash(gh repo:*)"
+      "Bash(gh repo:*)",
+      "Bash(npx next:*)"
     ]
   }
 }

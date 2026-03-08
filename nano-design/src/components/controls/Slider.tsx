@@ -153,7 +153,7 @@ export function Slider({ label, value, min, max, step = 1, onChange, disabled, s
           <span className="text-neutral-300">{label}</span>
           {suffix}
         </div>
-        <span className="text-neutral-500 tabular-nums" style={{ opacity: disabled ? 0.4 : 1 }}>{value}</span>
+
       </div>
 
       {/* Outer container — full width, used for input hit area */}

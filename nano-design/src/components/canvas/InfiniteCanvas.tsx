@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useCallback, useEffect } from 'react'
+import { Maximize } from 'lucide-react'
 import { EffectCanvas, getDisplaySize } from './EffectCanvas'
 import { useAppState } from '@/hooks/useEffectParams'
 import { useImageUpload } from '@/hooks/useImageUpload'
@@ -8,13 +9,36 @@ import { useTranslations } from 'next-intl'
 
 const ZOOM_MIN = 0.05
 const ZOOM_MAX = 20
-const ZOOM_SENSITIVITY = 0.01
-const PAN_SPEED = 1.5
+const ZOOM_SENSITIVITY = 0.02
+const PAN_SPEED = 1.7
 
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 interface InfiniteCanvasProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>
+}
+
+// 约束 viewport 使图片四边始终在容器内完整可见
+function clampVP(
+  v: { x: number; y: number; zoom: number },
+  np: { x: number; y: number },
+  imgW: number, imgH: number,
+  cw: number, ch: number
+) {
+  // 最大缩放：图片不能超出容器（宽高都必须 <= 容器）
+  const fitZoom = Math.min(cw / imgW, ch / imgH)
+  const zoom = Math.min(v.zoom, fitZoom)
+
+  const sw = imgW * zoom
+  const sh = imgH * zoom
+  const ox = np.x * zoom
+  const oy = np.y * zoom
+
+  // 图片 <= 容器：四边不能超出容器边界
+  const x = Math.max(-ox, Math.min(cw - sw - ox, v.x))
+  const y = Math.max(-oy, Math.min(ch - sh - oy, v.y))
+
+  return { x, y, zoom }
 }
 
 export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
@@ -34,6 +58,24 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
   const nodePosRef = useRef(nodePos)
   nodePosRef.current = nodePos
   const spaceRef = useRef(false)
+  const imageSizeRef = useRef({ width: 0, height: 0 })
+
+  // 用 ref 保存图片尺寸，供事件回调访问
+  useEffect(() => {
+    if (state.image) {
+      imageSizeRef.current = getDisplaySize(state.image)
+    } else {
+      imageSizeRef.current = { width: 0, height: 0 }
+    }
+  }, [state.image])
+
+  const clamp = useCallback((v: { x: number; y: number; zoom: number }) => {
+    const el = containerRef.current
+    const { width: imgW, height: imgH } = imageSizeRef.current
+    if (!el || imgW === 0) return v
+    const rect = el.getBoundingClientRect()
+    return clampVP(v, nodePosRef.current, imgW, imgH, rect.width, rect.height)
+  }, [])
 
   useEffect(() => {
     if (state.image && containerRef.current) {
@@ -70,10 +112,10 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
           const factor = Math.exp(-e.deltaY * ZOOM_SENSITIVITY)
           const z = Math.min(Math.max(v.zoom * factor, ZOOM_MIN), ZOOM_MAX)
           const r = z / v.zoom
-          return { x: cx - (cx - v.x) * r, y: cy - (cy - v.y) * r, zoom: z }
+          return clamp({ x: cx - (cx - v.x) * r, y: cy - (cy - v.y) * r, zoom: z })
         })
       } else {
-        setViewport(v => ({
+        setViewport(v => clamp({
           ...v,
           x: v.x - e.deltaX * PAN_SPEED,
           y: v.y - e.deltaY * PAN_SPEED,
@@ -82,7 +124,7 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
-  }, [])
+  }, [clamp])
 
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
@@ -119,7 +161,7 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
     setCursor('grabbing')
 
     const onMove = (me: MouseEvent) => {
-      setViewport(prev => ({ ...prev, x: ox + me.clientX - sx, y: oy + me.clientY - sy }))
+      setViewport(prev => clamp({ ...prev, x: ox + me.clientX - sx, y: oy + me.clientY - sy }))
     }
     const onUp = () => {
       setCursor(spaceRef.current ? 'grab' : 'default')
@@ -148,7 +190,11 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
       const vv = viewportRef.current
       const mwx = (me.clientX - rect.left - vv.x) / vv.zoom
       const mwy = (me.clientY - rect.top - vv.y) / vv.zoom
-      setNodePos({ x: mwx - ox, y: mwy - oy })
+      const newNp = { x: mwx - ox, y: mwy - oy }
+      // 临时更新 ref 让 clamp 能拿到最新 nodePos
+      nodePosRef.current = newNp
+      setNodePos(newNp)
+      setViewport(v => clamp(v))
     }
     const onUp = () => {
       setCursor('default')
@@ -211,6 +257,7 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
         style={{
           transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
           transformOrigin: '0 0',
+          willChange: 'transform',
         }}
       >
         {state.image && (
@@ -244,8 +291,35 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
         </div>
       )}
 
-      <div className="absolute bottom-3 right-3 px-2.5 py-1 bg-neutral-800/80 backdrop-blur-sm rounded text-xs text-neutral-500 select-none pointer-events-none font-mono tabular-nums">
-        {Math.round(viewport.zoom * 100)}%
+      <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-neutral-800/80 backdrop-blur-sm rounded text-xs text-neutral-500 select-none font-mono tabular-nums">
+        {state.image && (
+          <button
+            type="button"
+            onClick={() => {
+              if (!state.image || !containerRef.current) return
+              const rect = containerRef.current.getBoundingClientRect()
+              const { width: dw, height: dh } = getDisplaySize(state.image)
+              const padding = 40
+              const fitZoom = Math.min(
+                (rect.width - padding * 2) / dw,
+                (rect.height - padding * 2) / dh,
+                1
+              )
+              const scaledW = dw * fitZoom
+              const scaledH = dh * fitZoom
+              setNodePos({ x: 0, y: 0 })
+              setViewport({
+                x: (rect.width - scaledW) / 2,
+                y: (rect.height - scaledH) / 2,
+                zoom: fitZoom,
+              })
+            }}
+            className="p-1.5 hover:text-neutral-300 transition-colors cursor-pointer"
+          >
+            <Maximize style={{ width: 12, height: 12 }} />
+          </button>
+        )}
+        <span className="pr-2.5 py-1">{Math.round(viewport.zoom * 100)}%</span>
       </div>
     </div>
   )

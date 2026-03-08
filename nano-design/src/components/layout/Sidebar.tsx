@@ -12,7 +12,7 @@ import { GLITCH_PRESETS, DEFAULT_GLITCH_PARAMS } from '@/presets/glitch-presets'
 import { ASCII_PRESETS, DEFAULT_ASCII_PARAMS } from '@/presets/ascii-presets'
 import { GlitchParams, AsciiParams } from '@/types'
 import { useTranslations } from 'next-intl'
-import { AlignJustify, Shuffle, Layers, Dice5, Play, Gauge, LayoutGrid, Move } from 'lucide-react'
+import { AlignJustify, Shuffle, Layers, LayoutGrid, Move, ArrowDownUp, Palette } from 'lucide-react'
 
 interface SidebarProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>
@@ -61,13 +61,18 @@ export function Sidebar({ canvasRef }: SidebarProps) {
 
             <div className="space-y-3">
               <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlignJustify style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('stripeDensity')}</span>}
-                value={state.glitchParams.stripeDensity} min={0} max={100} onChange={(v) => setGlitch('stripeDensity', v)} disabled={disabled}
+                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shuffle style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('displacement')}</span>}
+                value={state.glitchParams.displacement} min={0} max={20} onChange={(v) => setGlitch('displacement', v)} disabled={disabled}
                 sound="mech5"
               />
               <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shuffle style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('displacement')}</span>}
-                value={state.glitchParams.displacement} min={0} max={100} onChange={(v) => setGlitch('displacement', v)} disabled={disabled}
+                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlignJustify style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('stripeDensity')}</span>}
+                value={state.glitchParams.stripeDensity} min={0} max={50} onChange={(v) => setGlitch('stripeDensity', v)} disabled={disabled}
+                sound="mech5"
+              />
+              <Slider
+                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowDownUp style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('verticalSpeed')}</span>}
+                value={state.glitchParams.verticalSpeed} min={0} max={20} onChange={(v) => setGlitch('verticalSpeed', v)} disabled={disabled}
                 sound="mech5"
               />
               <Slider
@@ -95,21 +100,39 @@ export function Sidebar({ canvasRef }: SidebarProps) {
                   </button>
                 }
               />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Dice5 style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('randomSeed')}</span>}
-                value={state.glitchParams.randomSeed} min={0} max={50} onChange={(v) => setGlitch('randomSeed', v)} disabled={disabled}
-                sound="mech5"
-              />
+            </div>
 
+            <div className="space-y-3">
               <Toggle
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Play style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('animation')}</span>}
-                checked={state.glitchParams.animation} onChange={(v) => setGlitch('animation', v)} disabled={disabled}
+                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Palette style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('duotone')}</span>}
+                checked={state.glitchParams.duotone}
+                onChange={(v) => setGlitch('duotone', v)}
+                disabled={disabled}
               />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Gauge style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('animationSpeed')}</span>}
-                value={state.glitchParams.animationSpeed} min={1} max={10} onChange={(v) => setGlitch('animationSpeed', v)} disabled={disabled || !state.glitchParams.animation}
-                sound="mech5"
-              />
+              {state.glitchParams.duotone && (
+                <div className="flex items-center gap-3" style={{ opacity: disabled ? 0.4 : 1 }}>
+                  <label className="flex items-center gap-1.5 text-sm text-neutral-300">
+                    {t('duotoneLightColor')}
+                    <input
+                      type="color"
+                      value={state.glitchParams.duotoneLightColor}
+                      onChange={(e) => setGlitch('duotoneLightColor', e.target.value)}
+                      disabled={disabled}
+                      className="color-swatch"
+                    />
+                  </label>
+                  <label className="flex items-center gap-1.5 text-sm text-neutral-300">
+                    {t('duotoneDarkColor')}
+                    <input
+                      type="color"
+                      value={state.glitchParams.duotoneDarkColor}
+                      onChange={(e) => setGlitch('duotoneDarkColor', e.target.value)}
+                      disabled={disabled}
+                      className="color-swatch"
+                    />
+                  </label>
+                </div>
+              )}
             </div>
           </>
         ) : (

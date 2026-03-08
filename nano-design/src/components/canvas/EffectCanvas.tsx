@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
+import { useRef, useEffect, useCallback, useImperativeHandle, forwardRef, memo } from 'react'
 import { useAppState } from '@/hooks/useEffectParams'
 import { renderGlitch } from '@/engines/glitch'
 import { renderAscii } from '@/engines/ascii'
@@ -13,11 +13,12 @@ export function getDisplaySize(image: HTMLImageElement) {
   return { width: Math.round(w * scale), height: Math.round(h * scale) }
 }
 
-export const EffectCanvas = forwardRef<HTMLCanvasElement>(function EffectCanvas(_, ref) {
+export const EffectCanvas = memo(forwardRef<HTMLCanvasElement>(function EffectCanvas(_, ref) {
   const { state } = useAppState()
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>(0)
   const frameRef = useRef<number>(0)
+  const lastSizeRef = useRef({ w: 0, h: 0 })
 
   useImperativeHandle(ref, () => canvasRef.current!, [])
 
@@ -30,11 +31,17 @@ export const EffectCanvas = forwardRef<HTMLCanvasElement>(function EffectCanvas(
 
     const { width, height } = getDisplaySize(state.image)
     const dpr = window.devicePixelRatio || 1
-    canvas.width = width * dpr
-    canvas.height = height * dpr
-    canvas.style.width = `${width}px`
-    canvas.style.height = `${height}px`
-    ctx.scale(dpr, dpr)
+    const pw = width * dpr
+    const ph = height * dpr
+    // 只在尺寸变化时重设 canvas 大小（避免每帧清空重建）
+    if (lastSizeRef.current.w !== pw || lastSizeRef.current.h !== ph) {
+      canvas.width = pw
+      canvas.height = ph
+      canvas.style.width = `${width}px`
+      canvas.style.height = `${height}px`
+      lastSizeRef.current = { w: pw, h: ph }
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     if (state.activeEffect === 'glitch') {
       renderGlitch(ctx, state.image, state.glitchParams, width, height, frameRef.current)
@@ -46,7 +53,11 @@ export const EffectCanvas = forwardRef<HTMLCanvasElement>(function EffectCanvas(
   useEffect(() => {
     if (!state.image) return
 
-    const isAnimating = state.activeEffect === 'glitch' && (state.glitchParams.animation || state.glitchParams.rgbSplitDirectionAnim)
+    const isAnimating = state.activeEffect === 'glitch' && (
+      state.glitchParams.rgbSplitDirectionAnim ||
+      state.glitchParams.displacement > 0 ||
+      state.glitchParams.verticalSpeed > 0
+    )
 
     if (isAnimating) {
       const animate = () => {
@@ -74,4 +85,4 @@ export const EffectCanvas = forwardRef<HTMLCanvasElement>(function EffectCanvas(
       style={{ width, height, display: 'block' }}
     />
   )
-})
+}))

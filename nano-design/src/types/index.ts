@@ -1,15 +1,16 @@
 export type EffectType = 'glitch' | 'ascii'
 
 export interface GlitchParams {
-  stripeDensity: number      // 1-100
-  displacement: number       // 0-100
+  stripeDensity: number      // 0-50
+  displacement: number       // 0-20
+  verticalSpeed: number      // 0-20 垂直滚动速度
   rgbSplit: number           // 0-50
   rgbSplitDirection: number  // 0-360 角度
   rgbSplitDirectionAnim: boolean // 自动旋转 0->360->0
   clipShape: 'circle' | 'rectangle' | 'none'
-  randomSeed: number         // 0-9999
-  animation: boolean
-  animationSpeed: number     // 1-10
+  duotone: boolean
+  duotoneLightColor: string
+  duotoneDarkColor: string
 }
 
 export interface AsciiParams {

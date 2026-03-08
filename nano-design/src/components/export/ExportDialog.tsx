@@ -63,7 +63,10 @@ export function ExportDialog({ open, onClose, canvasRef }: ExportDialogProps) {
 
   if (!open) return null
 
-  const isGlitchAnimation = state.activeEffect === 'glitch' && state.glitchParams.animation
+  const isGlitchAnimation = state.activeEffect === 'glitch' && (
+    state.glitchParams.rgbSplitDirectionAnim ||
+    state.glitchParams.displacement > 0
+  )
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
