@@ -291,7 +291,23 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
         </div>
       )}
 
-      <div className="absolute bottom-3 right-3 flex items-center gap-1 bg-neutral-800/80 backdrop-blur-sm rounded text-xs text-neutral-500 select-none font-mono tabular-nums">
+      <div
+        className="select-none font-mono tabular-nums"
+        style={{
+          position: 'absolute',
+          bottom: 16,
+          right: 16,
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          height: 36,
+          borderRadius: 18,
+          backgroundColor: 'var(--color-theme-toggle-bg)',
+          border: '1px solid var(--color-border-group)',
+          fontSize: 13,
+          color: 'var(--color-theme-toggle-icon)',
+        }}
+      >
         {state.image && (
           <button
             type="button"
@@ -314,12 +330,26 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
                 zoom: fitZoom,
               })
             }}
-            className="p-1.5 hover:text-neutral-300 transition-colors cursor-pointer"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 34,
+              height: 34,
+              borderRadius: '50%',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: 'inherit',
+              cursor: 'pointer',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-text-primary)' }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-theme-toggle-icon)' }}
           >
-            <Maximize style={{ width: 12, height: 12 }} />
+            <Maximize style={{ width: 14, height: 14 }} />
           </button>
         )}
-        <span className="pr-2.5 py-1">{Math.round(viewport.zoom * 100)}%</span>
+        <span style={{ padding: '0 12px 0 ' + (state.image ? '0' : '12px') }}>{Math.round(viewport.zoom * 100)}%</span>
       </div>
     </div>
   )
