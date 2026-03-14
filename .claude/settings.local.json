@@ -19,7 +19,8 @@
       "Read(//Users/admin/Leon/VibeCoding/2049 Design/**)",
       "Bash(python /tmp/screenshot.py)",
       "Bash(gh repo:*)",
-      "Bash(npx next:*)"
+      "Bash(npx next:*)",
+      "Bash(cp -r /tmp/anthropic-skills/skills/skill-creator ~/.claude/skills/skill-creator)"
     ]
   }
 }

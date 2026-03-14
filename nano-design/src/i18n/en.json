@@ -5,7 +5,8 @@
   },
   "effects": {
     "glitch": "Glitch Art",
-    "ascii": "ASCII Art"
+    "ascii": "ASCII Art",
+    "other": "Other"
   },
   "upload": {
     "title": "Upload",

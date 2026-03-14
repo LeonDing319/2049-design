@@ -1,7 +1,6 @@
 'use client'
 
 import { useAppState } from '@/hooks/useEffectParams'
-import { Globe } from 'lucide-react'
 
 export function LocaleToggle() {
   const { state, dispatch } = useAppState()
@@ -14,33 +13,31 @@ export function LocaleToggle() {
     <button
       onClick={toggleLocale}
       style={{
-        position: 'absolute',
-        bottom: 16,
-        right: 16,
-        zIndex: 50,
+        width: 36,
+        height: 36,
+        borderRadius: '50%',
+        flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
-        gap: 6,
-        padding: '6px 10px',
-        fontSize: 14,
-        color: 'var(--color-text-muted)',
-        borderRadius: 6,
-        border: '1px solid var(--color-border-faint)',
+        justifyContent: 'center',
+        fontSize: 13,
+        fontWeight: 500,
+        color: 'var(--color-theme-toggle-icon)',
+        backgroundColor: 'var(--color-theme-toggle-bg)',
+        border: '1px solid var(--color-border-group)',
         cursor: 'pointer',
-        backgroundColor: 'var(--color-bg-primary)',
-        transition: 'background-color 0.15s, color 0.15s',
+        transition: 'background-color 0.2s, transform 0.2s',
       }}
       onMouseEnter={e => {
-        e.currentTarget.style.backgroundColor = 'var(--color-bg-elevated)'
-        e.currentTarget.style.color = 'var(--color-text-primary)'
+        e.currentTarget.style.backgroundColor = 'var(--color-theme-toggle-hover)'
+        e.currentTarget.style.transform = 'scale(1.08)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.backgroundColor = 'var(--color-bg-primary)'
-        e.currentTarget.style.color = 'var(--color-text-muted)'
+        e.currentTarget.style.backgroundColor = 'var(--color-theme-toggle-bg)'
+        e.currentTarget.style.transform = 'scale(1)'
       }}
     >
-      <Globe style={{ width: 16, height: 16 }} />
-      <span>{state.locale === 'en' ? 'EN' : '中'}</span>
+      {state.locale === 'en' ? '中' : 'EN'}
     </button>
   )
 }

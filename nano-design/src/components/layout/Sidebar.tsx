@@ -12,6 +12,7 @@ import { GLITCH_PRESETS, DEFAULT_GLITCH_PARAMS } from '@/presets/glitch-presets'
 import { ASCII_PRESETS, DEFAULT_ASCII_PARAMS } from '@/presets/ascii-presets'
 import { GlitchParams, AsciiParams } from '@/types'
 import { useTranslations } from 'next-intl'
+import { ControlGroup } from '@/components/controls/ControlGroup'
 import { AlignJustify, Shuffle, Layers, LayoutGrid, Move, ArrowDownUp, Palette } from 'lucide-react'
 
 interface SidebarProps {
@@ -59,7 +60,7 @@ export function Sidebar({ canvasRef }: SidebarProps) {
               disabled={disabled}
             />
 
-            <div className="space-y-3">
+            <ControlGroup>
               <Slider
                 label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Layers style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('rgbSplit')}</span>}
                 value={state.glitchParams.rgbSplit} min={0} max={25} onChange={(v) => setGlitch('rgbSplit', v)} disabled={disabled}
@@ -85,6 +86,9 @@ export function Sidebar({ canvasRef }: SidebarProps) {
                   </button>
                 }
               />
+            </ControlGroup>
+
+            <ControlGroup>
               <Slider
                 label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shuffle style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('displacement')}</span>}
                 value={state.glitchParams.displacement} min={0} max={20} onChange={(v) => setGlitch('displacement', v)} disabled={disabled}
@@ -100,7 +104,7 @@ export function Sidebar({ canvasRef }: SidebarProps) {
                 value={state.glitchParams.verticalSpeed} min={0} max={20} onChange={(v) => setGlitch('verticalSpeed', v)} disabled={disabled}
                 sound="mech5"
               />
-            </div>
+            </ControlGroup>
 
             <div className="space-y-3">
               <Toggle
@@ -135,7 +139,7 @@ export function Sidebar({ canvasRef }: SidebarProps) {
               )}
             </div>
 
-            <div className="space-y-3">
+            <ControlGroup>
               <Slider
                 label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Move style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('dotSize')}</span>}
                 value={state.glitchParams.dotSize} min={0} max={6} step={0.1}
@@ -150,9 +154,9 @@ export function Sidebar({ canvasRef }: SidebarProps) {
                 disabled={disabled || state.glitchParams.dotSize <= 0}
                 sound="mech5"
               />
-            </div>
+            </ControlGroup>
           </>
-        ) : (
+        ) : state.activeEffect === 'ascii' ? (
           <>
             <PresetPicker
               label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><LayoutGrid style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('presets')}</span>}
@@ -210,6 +214,10 @@ export function Sidebar({ canvasRef }: SidebarProps) {
               <Toggle label={t('invert')} checked={state.asciiParams.invert} onChange={(v) => setAscii('invert', v)} disabled={disabled} />
             </div>
           </>
+        ) : (
+          <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 14 }}>
+            Coming soon...
+          </div>
         )}
       </div>
     </aside>

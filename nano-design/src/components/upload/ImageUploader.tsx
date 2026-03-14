@@ -1,49 +1,12 @@
 'use client'
 
-import { useCallback, useRef, useState } from 'react'
-import { ImageIcon, Download, Sun, Moon } from 'lucide-react'
+import { useCallback, useRef, useState, useEffect } from 'react'
+import { ImageIcon, Download } from 'lucide-react'
 import { useImageUpload } from '@/hooks/useImageUpload'
 import { useTranslations } from 'next-intl'
 import { exportPNG, exportJPEG, exportSVG, exportPDF } from '@/engines/exporter'
 import { useAppState } from '@/hooks/useEffectParams'
-
-// 10 水晶球 — 开灯（切换到亮色模式）
-function playLightOn() {
-  try {
-    const ctx = new AudioContext()
-    const t = ctx.currentTime;
-    [1046, 1318, 1568, 2093].forEach((freq, i) => {
-      const o = ctx.createOscillator()
-      const g = ctx.createGain()
-      o.type = 'sine'
-      o.frequency.value = freq
-      g.gain.setValueAtTime(0.001, t + i * .03)
-      g.gain.linearRampToValueAtTime(0.14, t + i * .03 + .01)
-      g.gain.exponentialRampToValueAtTime(0.001, t + i * .03 + .3)
-      o.connect(g); g.connect(ctx.destination)
-      o.start(t + i * .03); o.stop(t + i * .03 + .35)
-    })
-  } catch { /* ignore */ }
-}
-
-// 06 魔法点灯 — 关灯（切换到暗色模式）
-function playLightOff() {
-  try {
-    const ctx = new AudioContext()
-    const t = ctx.currentTime;
-    [0, .02, .04, .06, .08].forEach((d, i) => {
-      const o = ctx.createOscillator()
-      const g = ctx.createGain()
-      o.type = 'sine'
-      o.frequency.value = 800 + i * 250
-      g.gain.setValueAtTime(0.001, t + d)
-      g.gain.linearRampToValueAtTime(0.15, t + d + .008)
-      g.gain.exponentialRampToValueAtTime(0.001, t + d + .1)
-      o.connect(g); g.connect(ctx.destination)
-      o.start(t + d); o.stop(t + d + .12)
-    })
-  } catch { /* ignore */ }
-}
+import { EffectType } from '@/types'
 
 type ExportFormat = 'PNG' | 'JPEG' | 'SVG' | 'PDF'
 
@@ -55,6 +18,7 @@ interface ImageUploaderProps {
 export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
   const { handleUpload } = useImageUpload()
   const { state, dispatch } = useAppState()
+  const t2 = useTranslations('effects')
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const t = useTranslations('upload')
@@ -64,7 +28,21 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
   const [exporting, setExporting] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
 
-  const isDark = state.theme === 'dark'
+  const tabs: { id: EffectType; label: string }[] = [
+    { id: 'glitch', label: t2('glitch') },
+    { id: 'ascii', label: t2('ascii') },
+    { id: 'other', label: t2('other') },
+  ]
+  const tabBtnRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const [tabIndicator, setTabIndicator] = useState({ left: 2, width: 0 })
+
+  useEffect(() => {
+    const idx = tabs.findIndex(tab => tab.id === state.activeEffect)
+    const btn = tabBtnRefs.current[idx]
+    if (btn) {
+      setTabIndicator({ left: btn.offsetLeft, width: btn.offsetWidth })
+    }
+  }, [state.activeEffect, state.locale])
 
   const onFile = useCallback(async (file: File) => {
     setError(null)
@@ -98,11 +76,6 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
     setExporting(false)
   }, [canvasRef, hasImage])
 
-  const toggleTheme = useCallback(() => {
-    isDark ? playLightOn() : playLightOff()
-    dispatch({ type: 'SET_THEME', payload: isDark ? 'light' : 'dark' })
-  }, [dispatch, isDark])
-
   return (
     <div className="space-y-2">
       {/* Preview banner */}
@@ -114,19 +87,64 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
           display: 'block',
           borderRadius: '8px',
           objectFit: 'cover',
-          border: '1.5px solid rgba(92, 92, 92, 1)',
+          border: '1px solid var(--color-border-group)',
           transition: 'opacity 0.3s ease',
         }}
       />
 
-      <div style={{ display: 'flex', gap: 8 }}>
+      {/* Effect tabs */}
+      <nav style={{
+        position: 'relative',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        backgroundColor: 'var(--color-bg-elevated)',
+        borderRadius: 8,
+        padding: 2,
+        border: '1px solid var(--color-border-group)',
+      }}>
+        <div style={{
+          position: 'absolute',
+          top: 2,
+          left: tabIndicator.left,
+          width: tabIndicator.width,
+          height: 'calc(100% - 4px)',
+          borderRadius: 6,
+          backgroundColor: 'var(--color-tab-indicator)',
+          boxShadow: 'var(--color-tab-indicator-shadow)',
+          transition: 'left 0.2s cubic-bezier(0.4, 0, 0.2, 1), width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          pointerEvents: 'none',
+        }} />
+        {tabs.map((tab, i) => (
+          <button
+            key={tab.id}
+            ref={el => { tabBtnRefs.current[i] = el }}
+            onClick={() => dispatch({ type: 'SET_EFFECT', payload: tab.id })}
+            style={{
+              flex: 1,
+              position: 'relative',
+              zIndex: 1,
+              padding: '6px 0',
+              fontSize: 13,
+              borderRadius: 6,
+              border: 'none',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              backgroundColor: 'transparent',
+              color: state.activeEffect === tab.id ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+              transition: 'color 0.2s',
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </nav>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
         {/* Upload button */}
         <button
           onClick={onClickUpload}
           style={{
-            flex: '1 1 0',
-            minWidth: 0,
-            width: 0,
             height: 36,
             display: 'flex',
             alignItems: 'center',
@@ -134,9 +152,11 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
             gap: '6px',
             padding: '0 12px',
             fontSize: '14px',
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
             color: 'var(--color-text-secondary)',
             backgroundColor: 'var(--color-bg-elevated)',
-            border: '1px solid var(--color-border)',
+            border: '1px solid var(--color-border-group)',
             borderRadius: '8px',
             cursor: 'pointer',
             transition: 'background-color 0.15s, border-color 0.15s',
@@ -149,13 +169,12 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
         </button>
 
         {/* Export button */}
-        <div style={{ position: 'relative', flex: '1 1 0', minWidth: 0, width: 0, display: 'flex' }}>
+        <div style={{ position: 'relative' }}>
           <button
             onClick={() => { if (hasImage && !exporting) setShowExportMenu(v => !v) }}
             disabled={!hasImage || exporting}
             style={{
-              flex: '1 1 0',
-              minWidth: 0,
+              width: '100%',
               height: 36,
               display: 'flex',
               alignItems: 'center',
@@ -165,7 +184,7 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
               fontSize: '14px',
               color: 'var(--color-text-secondary)',
               backgroundColor: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border)',
+              border: '1px solid var(--color-border-group)',
               borderRadius: '8px',
               cursor: !hasImage || exporting ? 'not-allowed' : 'pointer',
               opacity: !hasImage || exporting ? 0.4 : 1,
@@ -188,7 +207,7 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
                 right: 0,
                 zIndex: 20,
                 backgroundColor: 'var(--color-bg-secondary)',
-                border: '1px solid var(--color-border)',
+                border: '1px solid var(--color-border-group)',
                 borderRadius: '12px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                 overflow: 'hidden',
@@ -227,39 +246,6 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
             </>
           )}
         </div>
-
-        {/* Theme toggle button */}
-        <button
-          onClick={toggleTheme}
-          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
-            flexShrink: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'var(--color-theme-toggle-bg)',
-            border: '1px solid var(--color-border)',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s, transform 0.2s',
-            color: 'var(--color-theme-toggle-icon)',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.backgroundColor = 'var(--color-theme-toggle-hover)'
-            e.currentTarget.style.transform = 'scale(1.08)'
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.backgroundColor = 'var(--color-theme-toggle-bg)'
-            e.currentTarget.style.transform = 'scale(1)'
-          }}
-        >
-          {isDark
-            ? <Sun style={{ width: 16, height: 16 }} />
-            : <Moon style={{ width: 16, height: 16 }} />
-          }
-        </button>
       </div>
 
       {error && <p style={{ fontSize: 12, color: '#f87171', paddingLeft: 4 }}>{error}</p>}

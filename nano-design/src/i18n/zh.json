@@ -5,7 +5,8 @@
   },
   "effects": {
     "glitch": "故障艺术",
-    "ascii": "代码艺术"
+    "ascii": "代码艺术",
+    "other": "其他效果"
   },
   "upload": {
     "title": "上传图片",

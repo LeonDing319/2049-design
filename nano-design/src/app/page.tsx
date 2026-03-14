@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { InfiniteCanvas } from '@/components/canvas/InfiniteCanvas'
 import { LocaleToggle } from '@/components/layout/LocaleToggle'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -17,7 +18,10 @@ export default function Home() {
           <InfiniteCanvas canvasRef={canvasRef} />
         </main>
         <Sidebar canvasRef={canvasRef} />
-        <LocaleToggle />
+        <div style={{ position: 'absolute', bottom: 16, right: 16, zIndex: 50, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <ThemeToggle />
+          <LocaleToggle />
+        </div>
       </div>
     </div>
   )
