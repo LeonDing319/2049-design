@@ -90,6 +90,6 @@ export const DEFAULT_GLITCH_PARAMS: GlitchParams = {
   duotone: false,
   duotoneLightColor: '#e7305e',
   duotoneDarkColor: '#2e3060',
-  dotSize: 2.2,
-  dotOpacity: 0.28,
+  dotSize: 0,
+  dotOpacity: 0,
 }

@@ -21,7 +21,7 @@ interface SidebarProps {
 
 export function Sidebar({ canvasRef }: SidebarProps) {
   const { state, dispatch } = useAppState()
-  const [activePresetId, setActivePresetId] = useState<string>(GLITCH_PRESETS[0].id)
+  const [activePresetId, setActivePresetId] = useState<string>('')
   const t = useTranslations('params')
   const hasImage = !!state.image
   const disabled = !hasImage
