@@ -12,14 +12,14 @@ describe('appReducer', () => {
     expect(nextState.asciiParams).toBe(initialAppState.asciiParams)
   })
 
-  it('updates scanline density without affecting other glitch params', () => {
+  it('updates corruption without affecting other glitch params', () => {
     const nextState = appReducer(initialAppState, {
       type: 'SET_GLITCH_PARAMS',
-      payload: { scanlineDensity: 24 },
+      payload: { corruption: 50 },
     })
 
-    expect(initialAppState.glitchParams.scanlineDensity).toBe(0)
-    expect(nextState.glitchParams.scanlineDensity).toBe(24)
+    expect(initialAppState.glitchParams.corruption).toBe(0)
+    expect(nextState.glitchParams.corruption).toBe(50)
     expect(nextState.glitchParams.dotSize).toBe(initialAppState.glitchParams.dotSize)
   })
 

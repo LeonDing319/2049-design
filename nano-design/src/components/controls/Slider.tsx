@@ -110,7 +110,7 @@ function playSound(type: SoundType) {
 }
 
 interface SliderProps {
-  label: ReactNode
+  label?: ReactNode
   value: number
   min: number
   max: number
@@ -119,18 +119,24 @@ interface SliderProps {
   disabled?: boolean
   suffix?: ReactNode
   sound?: SoundType
+  snapTo?: number
+  snapThreshold?: number
 }
 
-export function Slider({ label, value, min, max, step = 1, onChange, disabled, suffix, sound = 'bubble' }: SliderProps) {
+export function Slider({ label, value, min, max, step = 1, onChange, disabled, suffix, sound = 'bubble', snapTo, snapThreshold }: SliderProps) {
+  const threshold = snapThreshold ?? (max - min) * 0.03
   const percent = (value - min) / (max - min)
   const trackRef = useRef<HTMLDivElement>(null)
   const [trackWidth, setTrackWidth] = useState(0)
   const [dragging, setDragging] = useState(false)
 
   const handleChange = useCallback((v: number) => {
+    if (snapTo !== undefined && Math.abs(v - snapTo) <= threshold) {
+      v = snapTo
+    }
     if (sound !== 'drag') playSound(sound)
     onChange(v)
-  }, [onChange, sound])
+  }, [onChange, sound, snapTo, threshold])
 
   useLayoutEffect(() => {
     if (!trackRef.current) return
@@ -148,13 +154,14 @@ export function Slider({ label, value, min, max, step = 1, onChange, disabled, s
 
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2">
-          <span className="text-neutral-300">{label}</span>
-          {suffix}
+      {(label || suffix) && (
+        <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center gap-2">
+            {label && <span className="text-neutral-300">{label}</span>}
+            {suffix}
+          </div>
         </div>
-
-      </div>
+      )}
 
       {/* Outer container — full width, used for input hit area */}
       <div ref={trackRef} style={{ position: 'relative', height: THUMB, opacity: disabled ? 0.4 : 1 }}>

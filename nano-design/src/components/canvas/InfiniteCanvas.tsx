@@ -25,18 +25,20 @@ function clampVP(
   imgW: number, imgH: number,
   cw: number, ch: number
 ) {
-  // 最大缩放：图片不能超出容器（宽高都必须 <= 容器）
-  const fitZoom = Math.min(cw / imgW, ch / imgH)
-  const zoom = Math.min(v.zoom, fitZoom)
+  const zoom = Math.min(Math.max(v.zoom, ZOOM_MIN), ZOOM_MAX)
 
   const sw = imgW * zoom
   const sh = imgH * zoom
   const ox = np.x * zoom
   const oy = np.y * zoom
 
-  // 图片 <= 容器：四边不能超出容器边界
-  const x = Math.max(-ox, Math.min(cw - sw - ox, v.x))
-  const y = Math.max(-oy, Math.min(ch - sh - oy, v.y))
+  // 图片 <= 容器：居中约束；图片 > 容器：不能拖出边界
+  const x = sw <= cw
+    ? Math.max(-ox, Math.min(cw - sw - ox, v.x))
+    : Math.min(-ox, Math.max(cw - sw - ox, v.x))
+  const y = sh <= ch
+    ? Math.max(-oy, Math.min(ch - sh - oy, v.y))
+    : Math.min(-oy, Math.max(ch - sh - oy, v.y))
 
   return { x, y, zoom }
 }
@@ -83,12 +85,7 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
     if (source && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect()
       const { width: dw, height: dh } = getDisplaySize(source)
-      const padding = 40
-      const fitZoom = Math.min(
-        (rect.width - padding * 2) / dw,
-        (rect.height - padding * 2) / dh,
-        1
-      )
+      const fitZoom = Math.min(rect.width / dw, rect.height / dh)
       const scaledW = dw * fitZoom
       const scaledH = dh * fitZoom
       setNodePos({ x: 0, y: 0 })
@@ -293,66 +290,47 @@ export function InfiniteCanvas({ canvasRef }: InfiniteCanvasProps) {
         </div>
       )}
 
-      <div
-        className="select-none font-mono tabular-nums"
-        style={{
-          position: 'absolute',
-          bottom: 16,
-          right: 16,
-          zIndex: 50,
-          display: 'flex',
-          alignItems: 'center',
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: 'var(--color-bg-elevated)',
-          border: '1px solid var(--color-border-group)',
-          fontSize: 13,
-          color: 'var(--color-text-secondary)',
-        }}
-      >
-        {source && (
-          <button
-            type="button"
-            onClick={() => {
-              if (!source || !containerRef.current) return
-              const rect = containerRef.current.getBoundingClientRect()
-              const { width: dw, height: dh } = getDisplaySize(source)
-              const padding = 40
-              const fitZoom = Math.min(
-                (rect.width - padding * 2) / dw,
-                (rect.height - padding * 2) / dh,
-                1
-              )
-              const scaledW = dw * fitZoom
-              const scaledH = dh * fitZoom
-              setNodePos({ x: 0, y: 0 })
-              setViewport({
-                x: (rect.width - scaledW) / 2,
-                y: (rect.height - scaledH) / 2,
-                zoom: fitZoom,
-              })
-            }}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 34,
-              height: 34,
-              borderRadius: '50%',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: 'inherit',
-              cursor: 'pointer',
-              transition: 'color 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-text-primary)' }}
-            onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-secondary)' }}
-          >
-            <Maximize style={{ width: 14, height: 14 }} />
-          </button>
-        )}
-        <span style={{ padding: '0 12px 0 ' + (source ? '0' : '12px') }}>{Math.round(viewport.zoom * 100)}%</span>
-      </div>
+      {source && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!source || !containerRef.current) return
+            const rect = containerRef.current.getBoundingClientRect()
+            const { width: dw, height: dh } = getDisplaySize(source)
+            const fitZoom = Math.min(rect.width / dw, rect.height / dh)
+            const scaledW = dw * fitZoom
+            const scaledH = dh * fitZoom
+            setNodePos({ x: 0, y: 0 })
+            setViewport({
+              x: (rect.width - scaledW) / 2,
+              y: (rect.height - scaledH) / 2,
+              zoom: fitZoom,
+            })
+          }}
+          className="select-none"
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            right: 16,
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 36,
+            height: 36,
+            borderRadius: '50%',
+            border: '1px solid var(--color-border-group)',
+            backgroundColor: 'var(--color-bg-elevated)',
+            color: 'var(--color-text-secondary)',
+            cursor: 'pointer',
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'var(--color-text-primary)' }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'var(--color-text-secondary)' }}
+        >
+          <Maximize style={{ width: 14, height: 14 }} />
+        </button>
+      )}
     </div>
   )
 }

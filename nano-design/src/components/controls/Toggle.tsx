@@ -3,7 +3,7 @@
 import { ReactNode } from 'react'
 
 interface ToggleProps {
-  label: ReactNode
+  label?: ReactNode
   checked: boolean
   onChange: (checked: boolean) => void
   disabled?: boolean
@@ -12,7 +12,7 @@ interface ToggleProps {
 export function Toggle({ label, checked, onChange, disabled }: ToggleProps) {
   return (
     <div className="flex items-center justify-between" style={{ opacity: disabled ? 0.4 : 1 }}>
-      <span className="text-sm text-neutral-300">{label}</span>
+      {label && <span className="text-sm text-neutral-300">{label}</span>}
       <button
         type="button"
         role="switch"

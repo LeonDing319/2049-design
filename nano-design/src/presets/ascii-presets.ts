@@ -11,7 +11,6 @@ export const ASCII_CHAR_SETS: Record<string, string> = {
 export const ASCII_PRESETS: Preset<AsciiParams>[] = []
 
 export const DEFAULT_ASCII_PARAMS: AsciiParams = {
-  renderMode: 'brightness',
   charSet: 'dense',
   customChars: 'Ñ@#W$9876543210?!abc;:+=-,._ ',
   fontSize: 8,
@@ -21,8 +20,6 @@ export const DEFAULT_ASCII_PARAMS: AsciiParams = {
   bgBlur: 14,
   bgOpacity: 100,
   charOpacity: 55,
-  brightness: 0,
-  contrast: 0,
   charBrightness: 0,
   charContrast: 0,
   invert: false,

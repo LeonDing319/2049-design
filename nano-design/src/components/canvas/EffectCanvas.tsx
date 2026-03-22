@@ -5,7 +5,7 @@ import { useAppState } from '@/hooks/useEffectParams'
 import { renderGlitch, applyDuotone } from '@/engines/glitch'
 import { renderAscii } from '@/engines/ascii'
 
-const MAX_DISPLAY_DIM = 1200
+const MAX_DISPLAY_DIM = 1600
 
 export function getDisplaySize(source: HTMLImageElement | HTMLVideoElement) {
   const w = source instanceof HTMLVideoElement ? source.videoWidth : source.naturalWidth

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healing Sound Picker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 40px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  p.sub { font-size: 13px; color: #666; margin-bottom: 32px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    max-width: 900px;
+  }
+  .card {
+    background: #151515;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .card:hover { background: #1a1a1a; border-color: #333; }
+  .card:active { transform: scale(0.97); }
+  .card.playing { border-color: #4a9eff; background: #111620; }
+  .card .num { font-size: 10px; color: #444; font-weight: 500; }
+  .card .name { font-size: 13px; font-weight: 500; }
+  .card .desc { font-size: 10px; color: #555; line-height: 1.3; }
+</style>
+</head>
+<body>
+
+<h1>Healing Trigger Sounds</h1>
+<p class="sub">30 soothing micro-sounds. All Web Audio API synthesized. Click to play.</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const cx = new (window.AudioContext || window.webkitAudioContext)()
+
+// Helpers
+function sine(freq, end, dur, vol, attack = 0.01) {
+  const o = cx.createOscillator(), g = cx.createGain()
+  o.type = 'sine'
+  o.frequency.setValueAtTime(freq, cx.currentTime)
+  o.frequency.exponentialRampToValueAtTime(end, cx.currentTime + dur)
+  g.gain.setValueAtTime(0.001, cx.currentTime)
+  g.gain.linearRampToValueAtTime(vol, cx.currentTime + attack)
+  g.gain.exponentialRampToValueAtTime(0.001, cx.currentTime + dur)
+  o.connect(g).connect(cx.destination)
+  o.start(); o.stop(cx.currentTime + dur)
+}
+
+function chord(freqs, dur, vol, attack = 0.02) {
+  freqs.forEach(f => sine(f, f * 0.98, dur, vol / freqs.length, attack))
+}
+
+function noise(dur, freq, Q, vol, type = 'lowpass', attack = 0.1) {
+  const len = cx.sampleRate * dur
+  const buf = cx.createBuffer(1, len, cx.sampleRate)
+  const d = buf.getChannelData(0)
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1
+  const src = cx.createBufferSource(); src.buffer = buf
+  const f = cx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = Q
+  const g = cx.createGain()
+  g.gain.setValueAtTime(0.001, cx.currentTime)
+  g.gain.linearRampToValueAtTime(vol, cx.currentTime + attack)
+  g.gain.exponentialRampToValueAtTime(0.001, cx.currentTime + dur)
+  src.connect(f).connect(g).connect(cx.destination)
+  src.start()
+}
+
+function tri(freq, end, dur, vol, attack = 0.01) {
+  const o = cx.createOscillator(), g = cx.createGain()
+  o.type = 'triangle'
+  o.frequency.setValueAtTime(freq, cx.currentTime)
+  o.frequency.exponentialRampToValueAtTime(end, cx.currentTime + dur)
+  g.gain.setValueAtTime(0.001, cx.currentTime)
+  g.gain.linearRampToValueAtTime(vol, cx.currentTime + attack)
+  g.gain.exponentialRampToValueAtTime(0.001, cx.currentTime + dur)
+  o.connect(g).connect(cx.destination)
+  o.start(); o.stop(cx.currentTime + dur)
+}
+
+function delayed(fn, ms) { setTimeout(fn, ms) }
+
+const sounds = [
+  // --- Chime family ---
+  {
+    name: 'Wind Chime',
+    desc: 'Gentle two-note chime',
+    play: () => { sine(880, 860, 0.8, 0.08, 0.005); delayed(() => sine(1320, 1300, 0.7, 0.05, 0.005), 80) }
+  },
+  {
+    name: 'Morning Bell',
+    desc: 'Soft bell with overtone',
+    play: () => { sine(523, 520, 1.2, 0.1, 0.003); sine(1047, 1040, 0.9, 0.04, 0.003) }
+  },
+  {
+    name: 'Temple Tone',
+    desc: 'Warm singing bowl',
+    play: () => chord([264, 396, 528], 1.5, 0.12, 0.01)
+  },
+  {
+    name: 'Glass Tap',
+    desc: 'Tiny crystal glass touch',
+    play: () => sine(2100, 1800, 0.3, 0.06, 0.002)
+  },
+  {
+    name: 'Fairy Bell',
+    desc: 'Twinkling high sparkle',
+    play: () => { sine(1760, 1700, 0.4, 0.05, 0.002); delayed(() => sine(2640, 2600, 0.3, 0.03, 0.002), 60) }
+  },
+
+  // --- Nature family ---
+  {
+    name: 'Leaf Rustle',
+    desc: 'Soft filtered noise, like leaves',
+    play: () => noise(0.6, 3000, 0.5, 0.06, 'highpass', 0.05)
+  },
+  {
+    name: 'Breeze',
+    desc: 'Gentle wind passing by',
+    play: () => noise(1.5, 400, 0.8, 0.08, 'lowpass', 0.4)
+  },
+  {
+    name: 'Rain Bead',
+    desc: 'Single raindrop on a leaf',
+    play: () => { noise(0.12, 2500, 3, 0.08, 'bandpass', 0.003); sine(600, 300, 0.2, 0.04, 0.002) }
+  },
+  {
+    name: 'Creek',
+    desc: 'Tiny stream trickle',
+    play: () => { noise(1.0, 600, 1.5, 0.06, 'bandpass', 0.15); noise(1.0, 200, 1, 0.04, 'lowpass', 0.2) }
+  },
+  {
+    name: 'Dawn Bird',
+    desc: 'Quick ascending chirp',
+    play: () => { sine(800, 1600, 0.12, 0.07, 0.005); delayed(() => sine(1000, 2000, 0.1, 0.05, 0.005), 150) }
+  },
+
+  // --- Warm tonal family ---
+  {
+    name: 'Warm Glow',
+    desc: 'Slow warm sine fade-in',
+    play: () => sine(330, 320, 1.5, 0.12, 0.3)
+  },
+  {
+    name: 'Lullaby Note',
+    desc: 'Single gentle lullaby tone',
+    play: () => tri(440, 430, 1.0, 0.1, 0.05)
+  },
+  {
+    name: 'Harp Pluck',
+    desc: 'Soft harp string pluck',
+    play: () => { tri(523, 520, 0.8, 0.1, 0.003); tri(785, 780, 0.6, 0.04, 0.003) }
+  },
+  {
+    name: 'Celesta',
+    desc: 'Celesta-like soft strike',
+    play: () => { sine(1047, 1040, 0.6, 0.06, 0.002); sine(2093, 2080, 0.4, 0.02, 0.002) }
+  },
+  {
+    name: 'Velvet Pad',
+    desc: 'Smooth low chord swell',
+    play: () => chord([220, 277, 330], 2.0, 0.15, 0.4)
+  },
+
+  // --- Click/tap family ---
+  {
+    name: 'Soft Click',
+    desc: 'Minimal UI click',
+    play: () => sine(800, 400, 0.08, 0.1, 0.001)
+  },
+  {
+    name: 'Pebble',
+    desc: 'Stone on stone, subtle',
+    play: () => { noise(0.06, 4000, 2, 0.1, 'highpass', 0.001); sine(300, 150, 0.1, 0.08, 0.001) }
+  },
+  {
+    name: 'Wood Knock',
+    desc: 'Hollow wood tap',
+    play: () => { tri(280, 100, 0.15, 0.12, 0.002); noise(0.08, 1500, 3, 0.05, 'bandpass', 0.001) }
+  },
+  {
+    name: 'Bubble Pop',
+    desc: 'Tiny bubble popping',
+    play: () => sine(500, 1200, 0.06, 0.1, 0.001)
+  },
+  {
+    name: 'Feather Touch',
+    desc: 'Ultra-light touch feedback',
+    play: () => { sine(1200, 900, 0.1, 0.04, 0.002); noise(0.05, 5000, 1, 0.02, 'highpass', 0.001) }
+  },
+
+  // --- Atmospheric family ---
+  {
+    name: 'Ocean Breath',
+    desc: 'One slow wave breath',
+    play: () => { noise(2.5, 300, 0.6, 0.1, 'lowpass', 0.8); sine(55, 50, 2.5, 0.04, 0.5) }
+  },
+  {
+    name: 'Fog Horn',
+    desc: 'Distant soft fog signal',
+    play: () => { sine(110, 105, 1.8, 0.08, 0.2); sine(165, 158, 1.5, 0.03, 0.25) }
+  },
+  {
+    name: 'Night Hum',
+    desc: 'Quiet ambient drone',
+    play: () => chord([80, 120, 160], 2.0, 0.08, 0.3)
+  },
+  {
+    name: 'Stardust',
+    desc: 'Glittery descending sparkles',
+    play: () => {
+      [2400, 2000, 1600, 1200, 900].forEach((f, i) =>
+        delayed(() => sine(f, f * 0.9, 0.3, 0.04, 0.002), i * 70)
+      )
+    }
+  },
+  {
+    name: 'Moonrise',
+    desc: 'Slow rising fifth interval',
+    play: () => { sine(220, 225, 2.0, 0.08, 0.3); delayed(() => sine(330, 335, 1.8, 0.06, 0.3), 300) }
+  },
+
+  // --- Melodic family ---
+  {
+    name: 'Music Box',
+    desc: 'Two-note music box',
+    play: () => { sine(1047, 1040, 0.5, 0.07, 0.002); delayed(() => sine(1319, 1310, 0.45, 0.06, 0.002), 120) }
+  },
+  {
+    name: 'Pentatonic Drop',
+    desc: 'Quick 3-note descending phrase',
+    play: () => {
+      [880, 660, 528].forEach((f, i) =>
+        delayed(() => sine(f, f * 0.99, 0.35, 0.07, 0.003), i * 100)
+      )
+    }
+  },
+  {
+    name: 'Kalimba',
+    desc: 'Thumb piano pluck',
+    play: () => { tri(700, 690, 0.6, 0.12, 0.002); sine(1400, 1390, 0.4, 0.03, 0.002) }
+  },
+  {
+    name: 'Marimba Soft',
+    desc: 'Muted marimba hit',
+    play: () => { sine(392, 388, 0.5, 0.1, 0.003); sine(784, 776, 0.3, 0.03, 0.003) }
+  },
+  {
+    name: 'Zen Chord',
+    desc: 'Open fifth with octave',
+    play: () => chord([264, 396, 528, 792], 2.0, 0.1, 0.05)
+  },
+]
+
+const grid = document.getElementById('grid')
+sounds.forEach((s, i) => {
+  const card = document.createElement('div')
+  card.className = 'card'
+  card.innerHTML = `<span class="num">#${String(i + 1).padStart(2, '0')}</span><span class="name">${s.name}</span><span class="desc">${s.desc}</span>`
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('playing'))
+    card.classList.add('playing')
+    s.play()
+  })
+  grid.appendChild(card)
+})
+</script>
+</body>
+</html>

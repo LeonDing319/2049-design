@@ -3,35 +3,37 @@ import { ASCII_CHAR_SETS } from '@/presets/ascii-presets'
 
 type ImageSource = HTMLImageElement | HTMLVideoElement
 
-/**
- * Sobel edge map — matches Budarina's mx() exactly.
- * Grayscale normalised to [0,1], edge magnitudes clamped to [0,1] (no global normalisation).
- */
-function computeEdgeMap(pixels: Uint8ClampedArray, w: number, h: number): Float32Array {
-  const gray = new Float32Array(w * h)
-  for (let i = 0; i < w * h; i++) {
-    const off = i * 4
-    gray[i] = (pixels[off] * 0.299 + pixels[off + 1] * 0.587 + pixels[off + 2] * 0.114) / 255
-  }
-
-  const edges = new Float32Array(w * h)
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
-      const tl = gray[(y - 1) * w + (x - 1)]
-      const tc = gray[(y - 1) * w + x]
-      const tr = gray[(y - 1) * w + (x + 1)]
-      const ml = gray[y * w + (x - 1)]
-      const mr = gray[y * w + (x + 1)]
-      const bl = gray[(y + 1) * w + (x - 1)]
-      const bc = gray[(y + 1) * w + x]
-      const br = gray[(y + 1) * w + (x + 1)]
-
-      const gx = -tl + tr - 2 * ml + 2 * mr - bl + br
-      const gy = -tl - 2 * tc - tr + bl + 2 * bc + br
-      edges[y * w + x] = Math.min(1, Math.sqrt(gx * gx + gy * gy))
+// Sobel edge detection at half resolution for performance
+function sobelEdgeDetect(pixels: Uint8ClampedArray, w: number, h: number): { data: Float32Array; w: number; h: number } {
+  const hw = w >> 1
+  const hh = h >> 1
+  // Downsample luminance to half res
+  const lum = new Float32Array(hw * hh)
+  for (let y = 0; y < hh; y++) {
+    const sy = y * 2
+    for (let x = 0; x < hw; x++) {
+      const sx = x * 2
+      const p = (sy * w + sx) * 4
+      lum[y * hw + x] = (pixels[p] * 0.299 + pixels[p + 1] * 0.587 + pixels[p + 2] * 0.114) / 255
     }
   }
-  return edges
+  const edges = new Float32Array(hw * hh)
+  for (let y = 1; y < hh - 1; y++) {
+    for (let x = 1; x < hw - 1; x++) {
+      const tl = lum[(y - 1) * hw + (x - 1)]
+      const t  = lum[(y - 1) * hw + x]
+      const tr = lum[(y - 1) * hw + (x + 1)]
+      const l  = lum[y * hw + (x - 1)]
+      const r  = lum[y * hw + (x + 1)]
+      const bl = lum[(y + 1) * hw + (x - 1)]
+      const b  = lum[(y + 1) * hw + x]
+      const br = lum[(y + 1) * hw + (x + 1)]
+      const gx = -tl - 2 * l - bl + tr + 2 * r + br
+      const gy = -tl - 2 * t - tr + bl + 2 * b + br
+      edges[y * hw + x] = Math.min(1, Math.sqrt(gx * gx + gy * gy))
+    }
+  }
+  return { data: edges, w: hw, h: hh }
 }
 
 export function renderAscii(
@@ -54,8 +56,9 @@ export function renderAscii(
   samplerCtx.drawImage(sourceImage, 0, 0, w, h)
   const pixels = samplerCtx.getImageData(0, 0, w, h).data
 
-  // --- Edge map at full resolution ---
-  const edgeMap = computeEdgeMap(pixels, w, h)
+  // --- Edge detection (half resolution for performance) ---
+  const edge = sobelEdgeDetect(pixels, w, h)
+  const edgeEmphasis = (params.edgeEmphasis ?? 100) / 100
 
   // --- Background ---
   ctx.clearRect(0, 0, w, h)
@@ -94,7 +97,6 @@ export function renderAscii(
   const numChars = chars.length
 
   const V = params.coverage / 100
-  const X = params.edgeEmphasis / 100
   const invertMapping = params.invert
 
   // charBrightness / charContrast (Budarina's char-level color adjustments)
@@ -121,38 +123,26 @@ export function renderAscii(
       // Luminance from original pixels
       const lum = (r * 0.299 + g * 0.587 + b * 0.114) / 255
 
-      // Average edge value in cell region (step by 2)
-      const x0 = Math.max(0, Math.floor(cellX))
-      const x1 = Math.min(w - 1, Math.floor(cellX + colW))
-      const y0 = Math.max(0, Math.floor(cellY))
-      const y1 = Math.min(h - 1, Math.floor(cellY + rowH))
-      let edgeSum = 0
-      let edgeCount = 0
-      for (let ey = y0; ey <= y1; ey += 2) {
-        for (let ex = x0; ex <= x1; ex += 2) {
-          edgeSum += edgeMap[ey * w + ex]
-          edgeCount++
-        }
-      }
-      const edgeAvg = edgeCount > 0 ? edgeSum / edgeCount : 0
+      // Sample edge value at cell center (from half-res edge map)
+      const edgeX = Math.min(edge.w - 1, (sampleX >> 1))
+      const edgeY = Math.min(edge.h - 1, (sampleY >> 1))
+      const edgeVal = edge.data[edgeY * edge.w + edgeX]
 
       // Coverage filter
       if (V < 1 && lum > V) continue
 
-      // Char score
-      let charScore = params.renderMode === 'edges'
-        ? 1 - Math.min(1, edgeAvg / (1 - V + 0.001))
-        : lum
-
+      let charScore = lum
       if (invertMapping) charScore = 1 - charScore
 
-      // Edge emphasis blending
+      // Apply edge emphasis (Budarina's formula: Se = Se*(1-X) + (1-He)*X*Se)
       charScore = Math.max(0, Math.min(1,
-        charScore * (1 - X) + (1 - edgeAvg) * X * charScore
+        charScore * (1 - edgeEmphasis) + (1 - edgeVal) * edgeEmphasis * charScore
       ))
 
       // Pick character
-      const ch = chars[Math.floor(charScore * (numChars - 1))]
+      const ch = params.charSet === 'custom'
+        ? chars[(Math.floor(cellX / colW) + Math.floor(cellY / rowH)) % numChars]
+        : chars[Math.floor(charScore * (numChars - 1))]
       if (!ch || ch === ' ') continue
 
       // Apply charBrightness / charContrast to color (Budarina's exact formula)
@@ -164,7 +154,11 @@ export function renderAscii(
 
       const fillStyle = `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`
 
-      cells.push({ cx: cellX + colW / 2, cy: cellY + rowH / 2, ch, fillStyle, phase: Math.random() * Math.PI * 2 })
+      // Deterministic phase based on cell position for stable animation
+      const cellCol = Math.floor(cellX / colW)
+      const cellRow = Math.floor(cellY / rowH)
+      const phase = ((cellCol * 7 + cellRow * 13) % 100) / 100 * Math.PI * 2
+      cells.push({ cx: cellX + colW / 2, cy: cellY + rowH / 2, ch, fillStyle, phase })
     }
   }
 

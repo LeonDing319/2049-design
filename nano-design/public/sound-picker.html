@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apple System Sound Picker</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0a0a;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    padding: 40px;
+    min-height: 100vh;
+  }
+  h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  p.sub { font-size: 13px; color: #666; margin-bottom: 32px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    max-width: 720px;
+  }
+  .card {
+    background: #151515;
+    border: 1px solid #222;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card:hover { background: #1a1a1a; border-color: #333; }
+  .card:active { transform: scale(0.97); }
+  .card.playing { border-color: #4a9eff; background: #111620; }
+  .card .name { font-size: 14px; font-weight: 500; }
+  .icon { font-size: 18px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<h1>Apple System Sounds</h1>
+<p class="sub">macOS /System/Library/Sounds/ — click to play</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+const names = [
+  'Basso', 'Blow', 'Bottle', 'Frog', 'Funk', 'Glass', 'Hero',
+  'Morse', 'Ping', 'Pop', 'Purr', 'Sosumi', 'Submarine', 'Tink'
+]
+
+const grid = document.getElementById('grid')
+let currentAudio = null
+
+names.forEach(name => {
+  const card = document.createElement('div')
+  card.className = 'card'
+  card.innerHTML = `<span class="icon">🔊</span><span class="name">${name}</span>`
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('playing'))
+    card.classList.add('playing')
+    if (currentAudio) { currentAudio.pause(); currentAudio.currentTime = 0 }
+    currentAudio = new Audio(`/sounds/${name}.wav`)
+    currentAudio.play()
+  })
+  grid.appendChild(card)
+})
+</script>
+</body>
+</html>

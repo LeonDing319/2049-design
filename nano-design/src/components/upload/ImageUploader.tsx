@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useRef, useState, useEffect } from 'react'
-import { ImageIcon, Download } from 'lucide-react'
+import { ImageIcon, Download, Settings } from 'lucide-react'
 import { useImageUpload, ACCEPT_STRING } from '@/hooks/useImageUpload'
 import { useTranslations } from 'next-intl'
 import { exportPNG, exportJPEG, exportSVG, exportPDF, exportGIF, exportMP4, exportVideoMP4 } from '@/engines/exporter'
@@ -9,6 +9,7 @@ import { renderGlitch } from '@/engines/glitch'
 import { renderAscii } from '@/engines/ascii'
 import { useAppState } from '@/hooks/useEffectParams'
 import { EffectType } from '@/types'
+import { playSound } from '@/utils/sound'
 import { getDisplaySize } from '@/components/canvas/EffectCanvas'
 
 type StaticFormat = 'PNG' | 'JPEG' | 'SVG' | 'PDF'
@@ -33,6 +34,112 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
   const t = useTranslations('upload')
   const tExport = useTranslations('export')
   const hasSource = hasImage || !!state.video
+
+  const rippleLayerRef = useRef<HTMLDivElement>(null)
+  const bannerContainerRef = useRef<HTMLDivElement>(null)
+  const distortFilterId = 'banner-water-distort'
+
+  // 确保 SVG filter 存在
+  useEffect(() => {
+    if (document.getElementById(distortFilterId)) return
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+    svg.setAttribute('width', '0')
+    svg.setAttribute('height', '0')
+    svg.style.position = 'absolute'
+    svg.innerHTML = `<filter id="${distortFilterId}">
+      <feTurbulence type="turbulence" baseFrequency="0.012 0.035" numOctaves="3" seed="2" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="60" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>`
+    document.body.appendChild(svg)
+  }, [])
+
+  const triggerRipple = useCallback((btn: HTMLElement) => {
+    const layer = rippleLayerRef.current
+    const container = bannerContainerRef.current
+    if (!layer || !container) return
+    const containerRect = container.getBoundingClientRect()
+    const btnRect = btn.getBoundingClientRect()
+    const cx = btnRect.left + btnRect.width / 2 - containerRect.left
+    const cy = btnRect.top + btnRect.height / 2 - containerRect.top
+    const maxR = Math.hypot(
+      Math.max(cx, containerRect.width - cx),
+      Math.max(cy, containerRect.height - cy),
+    )
+    const size = maxR * 2.2
+
+    // 扭曲层：多圈扭曲副本，和涟漪同步扩散
+    const img = container.querySelector('img')
+    if (img) {
+      const pad = 12
+      const maxRadius = size / 2
+      const distortWaves = [
+        { delay: 0,   opacity: 1.0 },
+        { delay: 200, opacity: 0.7 },
+        { delay: 450, opacity: 0.4 },
+      ]
+      distortWaves.forEach(({ delay, opacity }) => {
+        const clone = img.cloneNode() as HTMLImageElement
+        const cloneCx = cx + pad
+        const cloneCy = cy + pad
+        Object.assign(clone.style, {
+          position: 'absolute',
+          top: `${-pad}px`,
+          left: `${-pad}px`,
+          width: `calc(100% + ${pad * 2}px)`,
+          height: `calc(100% + ${pad * 2}px)`,
+          objectFit: 'cover',
+          borderRadius: '8px',
+          filter: `url(#${distortFilterId})`,
+          clipPath: `circle(0px at ${cloneCx}px ${cloneCy}px)`,
+          pointerEvents: 'none',
+          zIndex: '1',
+          border: 'none',
+        })
+        container.insertBefore(clone, layer)
+        setTimeout(() => {
+          const anim = clone.animate([
+            { clipPath: `circle(0px at ${cloneCx}px ${cloneCy}px)`, opacity },
+            { clipPath: `circle(${maxRadius}px at ${cloneCx}px ${cloneCy}px)`, opacity: 0 },
+          ], { duration: 3500, easing: 'cubic-bezier(0.05, 0, 0, 1)', fill: 'forwards' })
+          anim.onfinish = () => clone.remove()
+        }, delay)
+      })
+    }
+
+    // 发 5 圈涟漪，层层递进
+    const waves = [
+      { delay: 0,    opacity: 0.20, fill: true },
+      { delay: 200,  opacity: 0.16, fill: false },
+      { delay: 450,  opacity: 0.12, fill: false },
+      { delay: 750,  opacity: 0.08, fill: false },
+      { delay: 1100, opacity: 0.05, fill: false },
+    ]
+    waves.forEach(({ delay, opacity, fill }) => {
+      const ripple = document.createElement('div')
+      Object.assign(ripple.style, {
+        position: 'absolute',
+        left: `${cx}px`,
+        top: `${cy}px`,
+        width: '0px',
+        height: '0px',
+        borderRadius: '50%',
+        border: `1px solid rgba(255,255,255,${opacity})`,
+        background: fill
+          ? `radial-gradient(circle, rgba(255,255,255,${opacity}) 0%, rgba(255,255,255,0.05) 50%, transparent 100%)`
+          : 'transparent',
+        transform: 'translate(-50%, -50%)',
+        pointerEvents: 'none',
+      })
+      layer.appendChild(ripple)
+      setTimeout(() => {
+        const anim = ripple.animate([
+          { width: '0px', height: '0px', opacity: 1 },
+          { width: `${size}px`, height: `${size}px`, opacity: 0 },
+        ], { duration: 3500, easing: 'cubic-bezier(0.05, 0, 0, 1)', fill: 'forwards' })
+        anim.onfinish = () => ripple.remove()
+      }, delay)
+    })
+  }, [])
 
   const [exportFormat, setExportFormat] = useState<ExportFormat>('PNG')
   const [exporting, setExporting] = useState(false)
@@ -242,18 +349,69 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
       style={dragging ? { outline: '2px dashed var(--color-text-muted)', outlineOffset: -2, borderRadius: 8 } : undefined}
     >
       {/* Preview banner */}
-      <img
-        src={state.activeEffect === 'ascii' ? '/preview-banner-ascii.png' : '/preview-banner.png'}
-        alt="Preview"
-        style={{
-          width: '100%',
-          display: 'block',
-          borderRadius: '8px',
-          objectFit: 'cover',
-          border: '1px solid var(--color-border-group)',
-          transition: 'opacity 0.3s ease',
-        }}
-      />
+      <div ref={bannerContainerRef} style={{ position: 'relative', overflow: 'hidden', borderRadius: '8px' }}>
+        <img
+          src={state.activeEffect === 'ascii' ? '/preview-banner-ascii.png' : '/preview-banner.png'}
+          alt="Preview"
+          style={{
+            width: '100%',
+            display: 'block',
+            objectFit: 'cover',
+            border: '1px solid var(--color-border-group)',
+            borderRadius: '8px',
+            transition: 'opacity 0.3s ease',
+          }}
+        />
+        {/* Ripple layer */}
+        <div
+          ref={rippleLayerRef}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            overflow: 'hidden',
+            borderRadius: '8px',
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => dispatch({ type: 'SET_LOCALE', payload: state.locale === 'en' ? 'zh' : 'en' })}
+          style={{
+            position: 'absolute',
+            top: 6,
+            right: 6,
+            zIndex: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.12)',
+            backgroundColor: 'rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.7)',
+            cursor: 'pointer',
+            transition: 'color 0.2s, background-color 0.2s, box-shadow 0.2s',
+            backdropFilter: 'blur(16px) saturate(1.4)',
+            WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+            boxShadow: 'inset 0 0.5px 0 rgba(255,255,255,0.2), 0 1px 3px rgba(0,0,0,0.2)',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.color = 'rgba(255,255,255,0.85)'
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.14)'
+            e.currentTarget.style.boxShadow = 'inset 0 0.5px 0 rgba(255,255,255,0.3), 0 2px 6px rgba(0,0,0,0.25)'
+            triggerRipple(e.currentTarget)
+            playSound('Bottle')
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = 'rgba(255,255,255,0.7)'
+            e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'
+            e.currentTarget.style.boxShadow = 'inset 0 0.5px 0 rgba(255,255,255,0.2), 0 1px 3px rgba(0,0,0,0.2)'
+          }}
+        >
+          <Settings style={{ width: 15, height: 15 }} />
+        </button>
+      </div>
 
       {/* Effect tabs */}
       <nav style={{
@@ -282,7 +440,7 @@ export function ImageUploader({ hasImage, canvasRef }: ImageUploaderProps) {
           <button
             key={tab.id}
             ref={el => { tabBtnRefs.current[i] = el }}
-            onClick={() => dispatch({ type: 'SET_EFFECT', payload: tab.id })}
+            onClick={() => { dispatch({ type: 'SET_EFFECT', payload: tab.id }); playSound('Frog') }}
             style={{
               flex: 1,
               position: 'relative',

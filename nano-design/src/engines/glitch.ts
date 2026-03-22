@@ -25,8 +25,6 @@ let duotoneLastDark = ''
 let duotoneTempCanvas: HTMLCanvasElement | null = null
 let dotMaskTileCanvas: HTMLCanvasElement | null = null
 let dotMaskTileKey = ''
-let scanlineDarkTileCanvas: HTMLCanvasElement | null = null
-let scanlineDarkTileKey = ''
 
 function ensureDuotoneFilter(lightHex: string, darkHex: string) {
   if (duotoneSvg && duotoneLastLight === lightHex && duotoneLastDark === darkHex) return
@@ -132,77 +130,50 @@ function applyDotMaskLayer(
   ctx.restore()
 }
 
-export function getScanlinePitch(scanlineDensity: number) {
-  if (scanlineDensity <= 0) return null
-
-  const clampedDensity = Math.max(1, Math.min(25, scanlineDensity))
-  const minPitch = 2
-  const maxPitch = 12
-  const normalized = (clampedDensity - 1) / 49
-
-  return Math.max(minPitch, Math.round(maxPitch - normalized * (maxPitch - minPitch)))
+// 确定性伪随机：相同 seed+index 始终返回相同结果
+function seededRandom(index: number, seed: number): number {
+  const x = Math.sin(index * 127.1 + seed * 311.7) * 43758.5453
+  return x - Math.floor(x)
 }
 
-export function getScanlineRowProfile(rowInPitch: number, pitch: number, lineThickness: number) {
-  if (pitch <= 1) {
-    return { darken: 0.12 }
+function applyCorruption(
+  ctx: CanvasRenderingContext2D,
+  sourceImage: ImageSource,
+  imgX: number,
+  imgY: number,
+  imgW: number,
+  imgH: number,
+  intensity: number,
+  stable: boolean
+) {
+  if (intensity <= 0) return
+
+  const blockCount = Math.floor(intensity / 2)
+  for (let i = 0; i < blockCount; i++) {
+    const r = stable ? (k: number) => seededRandom(i * 5 + k, intensity) : () => Math.random()
+    const sx = r(0) * imgW
+    const sy = r(1) * imgH
+    const sw = r(2) * (imgW / 4)
+    const sh = r(3) * (imgH / 10)
+    const dx = sx + (r(4) - 0.5) * intensity * 2
+    ctx.drawImage(
+      ctx.canvas,
+      imgX + sx, imgY + sy, sw, sh,
+      imgX + dx, imgY + sy, sw, sh
+    )
   }
-
-  const darkBand = Math.max(1, Math.min(lineThickness, pitch - 1))
-  if (rowInPitch <= darkBand) {
-    const falloff = darkBand <= 1 ? 1 : 1 - rowInPitch / darkBand
-    return { darken: 0.68 + falloff * 0.32 }
-  }
-
-  const tailSpan = Math.max(1, pitch - 1 - darkBand)
-  const tailOffset = rowInPitch - darkBand - 1
-  const tailProgress = tailSpan <= 1 ? 1 : tailOffset / tailSpan
-
-  return { darken: 0.12 + (1 - tailProgress) * 0.18 }
-}
-
-function ensureScanlineTile(pitch: number, lineThickness: number) {
-  const key = `${pitch}-${lineThickness}`
-  if (scanlineDarkTileCanvas && scanlineDarkTileKey === key) return scanlineDarkTileCanvas
-
-  const tileCanvas = document.createElement('canvas')
-  tileCanvas.width = 1
-  tileCanvas.height = pitch
-  const tileCtx = tileCanvas.getContext('2d')!
-
-  tileCtx.clearRect(0, 0, 1, pitch)
-  for (let y = 0; y < pitch; y++) {
-    const profile = getScanlineRowProfile(y, pitch, lineThickness)
-    if (profile.darken <= 0) continue
-    tileCtx.fillStyle = `rgba(0,0,0,${profile.darken})`
-    tileCtx.fillRect(0, y, 1, 1)
-  }
-
-  scanlineDarkTileCanvas = tileCanvas
-  scanlineDarkTileKey = key
-
-  return tileCanvas
 }
 
 function applyScanlineLayer(
   ctx: CanvasRenderingContext2D,
   width: number,
-  height: number,
-  scanlineDensity: number
+  height: number
 ) {
-  const pitch = getScanlinePitch(scanlineDensity)
-  if (pitch === null) return
-
-  const lineThickness = 4
-  const darkTile = ensureScanlineTile(pitch, lineThickness)
-  const darkPattern = ctx.createPattern(darkTile, 'repeat')
-  if (!darkPattern) return
-
   ctx.save()
-  ctx.globalCompositeOperation = 'multiply'
-  ctx.globalAlpha = 0.18
-  ctx.fillStyle = darkPattern
-  ctx.fillRect(0, 0, width, height)
+  ctx.fillStyle = 'rgba(0,0,0,0.2)'
+  for (let y = 0; y < height; y += 4) {
+    ctx.fillRect(0, y, width, 2)
+  }
   ctx.restore()
 }
 
@@ -397,7 +368,8 @@ export function renderGlitch(
     clipShape,
     dotSize,
     dotOpacity,
-    scanlineDensity,
+    corruption,
+    scanlines,
   } = params
 
   // 清除画布
@@ -537,7 +509,10 @@ export function renderGlitch(
   }
 
   applyDotMaskLayer(ctx, canvasWidth, canvasHeight, dotSize, dotOpacity)
-  applyScanlineLayer(ctx, canvasWidth, canvasHeight, scanlineDensity)
+  applyCorruption(ctx, sourceImage, imgX, imgY, imgW, imgH, corruption, rgbSplitDirectionAnim)
+  if (scanlines) {
+    applyScanlineLayer(ctx, canvasWidth, canvasHeight)
+  }
 
   ctx.restore()
 }

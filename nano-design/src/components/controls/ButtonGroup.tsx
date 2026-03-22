@@ -8,18 +8,20 @@ interface ButtonGroupOption {
 }
 
 interface ButtonGroupProps {
-  label: ReactNode
+  label?: ReactNode
   value: string
   options: ButtonGroupOption[]
   onChange: (value: string) => void
   disabled?: boolean
+  footer?: ReactNode
+  columns?: number
 }
 
-export function ButtonGroup({ label, value, options, onChange, disabled }: ButtonGroupProps) {
+export function ButtonGroup({ label, value, options, onChange, disabled, footer, columns = 3 }: ButtonGroupProps) {
   return (
     <div className="flex flex-col gap-1.5">
-      <span className="text-sm text-neutral-300">{label}</span>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {label && <span className="text-sm text-neutral-300">{label}</span>}
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${columns}, 1fr)`, gap: 6 }}>
         {options.map((opt) => (
           <button
             key={opt.value}
@@ -36,6 +38,7 @@ export function ButtonGroup({ label, value, options, onChange, disabled }: Butto
             {opt.label}
           </button>
         ))}
+        {footer && <div style={{ gridColumn: '1 / -1' }}>{footer}</div>}
       </div>
     </div>
   )

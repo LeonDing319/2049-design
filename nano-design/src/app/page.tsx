@@ -3,7 +3,6 @@
 import { useRef } from 'react'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { InfiniteCanvas } from '@/components/canvas/InfiniteCanvas'
-import { SettingsPanel } from '@/components/layout/SettingsPanel'
 
 export default function Home() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -16,7 +15,6 @@ export default function Home() {
         </main>
         <Sidebar canvasRef={canvasRef} />
       </div>
-      <SettingsPanel />
     </div>
   )
 }

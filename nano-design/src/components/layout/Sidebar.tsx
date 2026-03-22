@@ -10,9 +10,10 @@ import { GLITCH_PRESETS, DEFAULT_GLITCH_PARAMS } from '@/presets/glitch-presets'
 import { GlitchParams, AsciiParams } from '@/types'
 import { ButtonGroup } from '@/components/controls/ButtonGroup'
 import { useTranslations } from 'next-intl'
-import { ControlGroup } from '@/components/controls/ControlGroup'
+import { ControlGroup, SectionLabel } from '@/components/controls/ControlGroup'
 import { VideoControls } from '@/components/controls/VideoControls'
 import { AlignJustify, Shuffle, Layers, LayoutGrid, Move, ArrowDownUp, Palette, Type, Eye, Image, Play, Sun, Contrast, Grid } from 'lucide-react'
+import { playSound } from '@/utils/sound'
 
 interface SidebarProps {
   canvasRef: React.RefObject<HTMLCanvasElement | null>
@@ -132,107 +133,161 @@ export function Sidebar({ canvasRef }: SidebarProps) {
 
             <ControlGroup>
               <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><AlignJustify style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('scanlines')}</span>}
-                value={state.glitchParams.scanlineDensity} min={0} max={25}
-                onChange={(v) => setGlitch('scanlineDensity', v)}
+                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shuffle style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('corruption')}</span>}
+                value={state.glitchParams.corruption} min={0} max={100}
+                onChange={(v) => setGlitch('corruption', v)}
                 disabled={disabled}
                 sound="mech5"
               />
+              <div className="flex items-center justify-between">
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--color-text-secondary)' }}><AlignJustify style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('scanlines')}</span>
+                <Toggle
+                  checked={state.glitchParams.scanlines}
+                  onChange={(v) => { setGlitch('scanlines', v); playSound('BubblePop') }}
+                  disabled={disabled}
+                />
+              </div>
             </ControlGroup>
 
           </>
         ) : state.activeEffect === 'ascii' ? (
           <>
-            <ControlGroup>
-              <ButtonGroup
-                label={t('renderMode')}
-                value={state.asciiParams.renderMode}
-                options={[
-                  { value: 'brightness', label: t('renderModeOptions.brightness') },
-                  { value: 'edges', label: t('renderModeOptions.edges') },
-                ]}
-                onChange={(v) => setAscii('renderMode', v)}
-                disabled={disabled}
-              />
-              <ButtonGroup
-                label={t('charSet')}
-                value={state.asciiParams.charSet}
-                options={[
-                  { value: 'dense', label: t('charSetOptions.dense') },
-                  { value: 'classic', label: t('charSetOptions.classic') },
-                  { value: 'binary', label: t('charSetOptions.binary') },
-                  { value: 'minimal', label: t('charSetOptions.minimal') },
-                  { value: 'retro', label: t('charSetOptions.retro') },
-                  { value: 'custom', label: t('charSetOptions.custom') },
-                ]}
-                onChange={(v) => setAscii('charSet', v)}
-                disabled={disabled}
-              />
-              {state.asciiParams.charSet === 'custom' && (
-                <input
-                  type="text"
-                  value={state.asciiParams.customChars}
-                  onChange={(e) => setAscii('customChars', e.target.value)}
+            <ControlGroup title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Type style={{ width: 14, height: 14, opacity: 0.7, flexShrink: 0 }} />{t('sectionFont')}</span>}>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionStyle')}</SectionLabel>
+                <ButtonGroup
+                  value={state.asciiParams.charSet}
+                  options={[
+                    { value: 'dense', label: t('charSetOptions.dense') },
+                    { value: 'classic', label: t('charSetOptions.classic') },
+                    { value: 'binary', label: t('charSetOptions.binary') },
+                    { value: 'minimal', label: t('charSetOptions.minimal') },
+                    { value: 'retro', label: t('charSetOptions.retro') },
+                    { value: 'custom', label: t('charSetOptions.custom') },
+                  ]}
+                  onChange={(v) => setAscii('charSet', v)}
                   disabled={disabled}
-                  placeholder={t('customCharsPlaceholder')}
-                  style={{
-                    width: '100%',
-                    padding: '6px 10px',
-                    fontSize: 13,
-                    fontFamily: '"Courier New", Courier, monospace',
-                    color: 'var(--color-text-primary)',
-                    backgroundColor: 'var(--color-bg-elevated)',
-                    border: '1px solid var(--color-border-group)',
-                    borderRadius: 6,
-                    outline: 'none',
-                  }}
+                  footer={state.asciiParams.charSet === 'custom' ? (
+                    <input
+                      type="text"
+                      value={state.asciiParams.customChars}
+                      onChange={(e) => setAscii('customChars', e.target.value)}
+                      disabled={disabled}
+                      placeholder={t('customCharsPlaceholder')}
+                      style={{
+                        width: '100%',
+                        padding: '6px 10px',
+                        fontSize: 13,
+                        fontFamily: '"Courier New", Courier, monospace',
+                        color: 'var(--color-text-primary)',
+                        backgroundColor: 'var(--color-bg-elevated)',
+                        border: '1px solid var(--color-border-group)',
+                        borderRadius: 6,
+                        outline: 'none',
+                      }}
+                    />
+                  ) : undefined}
                 />
-              )}
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Type style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('fontSize')}</span>}
-                value={state.asciiParams.fontSize} min={6} max={28} step={2}
-                onChange={(v) => setAscii('fontSize', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-            </ControlGroup>
-
-            <ControlGroup>
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Eye style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('coverage')}</span>}
-                value={state.asciiParams.coverage} min={10} max={100}
-                onChange={(v) => setAscii('coverage', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Contrast style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('edgeEmphasis')}</span>}
-                value={state.asciiParams.edgeEmphasis} min={0} max={100}
-                onChange={(v) => setAscii('edgeEmphasis', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-            </ControlGroup>
-
-            <ControlGroup>
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Image style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('bgBlur')}</span>}
-                value={state.asciiParams.bgBlur} min={0} max={80}
-                onChange={(v) => setAscii('bgBlur', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Eye style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('bgOpacity')}</span>}
-                value={state.asciiParams.bgOpacity} min={0} max={100}
-                onChange={(v) => setAscii('bgOpacity', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
+              </div>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionSize')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.fontSize} min={6} max={28} step={2}
+                  onChange={(v) => setAscii('fontSize', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                  snapTo={8}
+                />
+              </div>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionCoverage')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.coverage} min={10} max={100}
+                  onChange={(v) => setAscii('coverage', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                />
+              </div>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionEdgeEmphasis')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.edgeEmphasis} min={0} max={100}
+                  onChange={(v) => setAscii('edgeEmphasis', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                  snapTo={100}
+                />
+              </div>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionCharOpacity')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.charOpacity} min={10} max={100}
+                  onChange={(v) => setAscii('charOpacity', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                  snapTo={55}
+                />
+              </div>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionCharBrightness')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.charBrightness} min={-100} max={100}
+                  onChange={(v) => setAscii('charBrightness', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                  snapTo={0}
+                />
+              </div>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionCharContrast')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.charContrast} min={-100} max={100}
+                  onChange={(v) => setAscii('charContrast', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                  snapTo={0}
+                />
+              </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-neutral-300" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Palette style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('bgColor')}
-                </span>
+                <SectionLabel>{t('sectionInvert')}</SectionLabel>
+                <Toggle
+                  checked={state.asciiParams.invert}
+                  onChange={(v) => { setAscii('invert', v); playSound('BubblePop') }}
+                  disabled={disabled}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <SectionLabel>{t('sectionDotGrid')}</SectionLabel>
+                <Toggle
+                  checked={state.asciiParams.dotGrid}
+                  onChange={(v) => { setAscii('dotGrid', v); playSound('BubblePop') }}
+                  disabled={disabled}
+                />
+              </div>
+            </ControlGroup>
+
+            <ControlGroup title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Image style={{ width: 14, height: 14, opacity: 0.7, flexShrink: 0 }} />{t('sectionBackground')}</span>}>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionBlur')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.bgBlur} min={0} max={80}
+                  onChange={(v) => setAscii('bgBlur', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                  snapTo={14}
+                />
+              </div>
+              <div className="space-y-1">
+                <SectionLabel>{t('sectionOpacity')}</SectionLabel>
+                <Slider
+                  value={state.asciiParams.bgOpacity} min={0} max={100}
+                  onChange={(v) => setAscii('bgOpacity', v)}
+                  disabled={disabled}
+                  sound="mech5"
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <SectionLabel>{t('sectionColor')}</SectionLabel>
                 <input
                   type="color"
                   value={state.asciiParams.bgColor}
@@ -243,86 +298,40 @@ export function Sidebar({ canvasRef }: SidebarProps) {
               </div>
             </ControlGroup>
 
-            <ControlGroup>
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Palette style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('charOpacity')}</span>}
-                value={state.asciiParams.charOpacity} min={10} max={100}
-                onChange={(v) => setAscii('charOpacity', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Sun style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('brightness')}</span>}
-                value={state.asciiParams.brightness} min={-100} max={100}
-                onChange={(v) => setAscii('brightness', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Contrast style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('contrast')}</span>}
-                value={state.asciiParams.contrast} min={-100} max={100}
-                onChange={(v) => setAscii('contrast', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Sun style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('charBrightness')}</span>}
-                value={state.asciiParams.charBrightness} min={-100} max={100}
-                onChange={(v) => setAscii('charBrightness', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-              <Slider
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Contrast style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('charContrast')}</span>}
-                value={state.asciiParams.charContrast} min={-100} max={100}
-                onChange={(v) => setAscii('charContrast', v)}
-                disabled={disabled}
-                sound="mech5"
-              />
-              <Toggle
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shuffle style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('invert')}</span>}
-                checked={state.asciiParams.invert}
-                onChange={(v) => setAscii('invert', v)}
-                disabled={disabled}
-              />
-              <Toggle
-                label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Grid style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('dotGrid')}</span>}
-                checked={state.asciiParams.dotGrid}
-                onChange={(v) => setAscii('dotGrid', v)}
-                disabled={disabled}
-              />
-            </ControlGroup>
 
-            <ControlGroup>
-              <Toggle
-                label={t('animated')}
-                checked={state.asciiParams.animated}
-                onChange={(v) => setAscii('animated', v)}
-                disabled={disabled}
-              />
+            <ControlGroup
+              title={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Play style={{ width: 14, height: 14, opacity: 0.7, flexShrink: 0 }} />{t('sectionAnimation')}</span>}
+              suffix={<Toggle checked={state.asciiParams.animated} onChange={(v) => { setAscii('animated', v); playSound('BubblePop') }} disabled={disabled} />}
+            >
               {state.asciiParams.animated && (
                 <>
-                  <Slider
-                    label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ArrowDownUp style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('animSpeed')}</span>}
-                    value={state.asciiParams.animSpeed} min={0.2} max={5} step={0.1}
-                    onChange={(v) => setAscii('animSpeed', v)}
-                    disabled={disabled}
-                    sound="mech5"
-                  />
-                  <Slider
-                    label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Layers style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('animIntensity')}</span>}
-                    value={state.asciiParams.animIntensity} min={10} max={100}
-                    onChange={(v) => setAscii('animIntensity', v)}
-                    disabled={disabled}
-                    sound="mech5"
-                  />
-                  <Slider
-                    label={<span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Shuffle style={{ width: 13, height: 13, opacity: 0.7, flexShrink: 0 }} />{t('animRandomness')}</span>}
-                    value={state.asciiParams.animRandomness} min={0} max={100}
-                    onChange={(v) => setAscii('animRandomness', v)}
-                    disabled={disabled}
-                    sound="mech5"
-                  />
+                  <div className="space-y-1">
+                    <SectionLabel>{t('sectionAnimSpeed')}</SectionLabel>
+                    <Slider
+                      value={state.asciiParams.animSpeed} min={0.2} max={5} step={0.1}
+                      onChange={(v) => setAscii('animSpeed', v)}
+                      disabled={disabled}
+                      sound="mech5"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <SectionLabel>{t('sectionAnimIntensity')}</SectionLabel>
+                    <Slider
+                      value={state.asciiParams.animIntensity} min={10} max={100}
+                      onChange={(v) => setAscii('animIntensity', v)}
+                      disabled={disabled}
+                      sound="mech5"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <SectionLabel>{t('sectionAnimRandomness')}</SectionLabel>
+                    <Slider
+                      value={state.asciiParams.animRandomness} min={0} max={100}
+                      onChange={(v) => setAscii('animRandomness', v)}
+                      disabled={disabled}
+                      sound="mech5"
+                    />
+                  </div>
                 </>
               )}
             </ControlGroup>

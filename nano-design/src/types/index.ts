@@ -13,12 +13,12 @@ export interface GlitchParams {
   duotoneDarkColor: string
   dotSize: number            // 0-6 (0 表示关闭点阵)
   dotOpacity: number         // 0-0.7
-  scanlineDensity: number    // 0-25 (0 表示关闭故障格线)
+  corruption: number         // 0-100 故障腐蚀强度
+  scanlines: boolean         // 扫描线开关
 }
 
 export interface AsciiParams {
   // Characters
-  renderMode: 'brightness' | 'edges'
   charSet: 'dense' | 'classic' | 'binary' | 'minimal' | 'retro' | 'custom'
   customChars: string
   fontSize: number           // 6-28, step 2
@@ -34,8 +34,6 @@ export interface AsciiParams {
 
   // Color & Tone
   charOpacity: number        // 10-100
-  brightness: number         // -100 to 100
-  contrast: number           // -100 to 100
   charBrightness: number     // -100 to 100
   charContrast: number       // -100 to 100
   invert: boolean
